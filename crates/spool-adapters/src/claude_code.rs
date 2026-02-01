@@ -18,8 +18,8 @@ use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use spool_format::{
-    Entry, EntryId, PromptEntry, ResponseEntry, SessionEntry, SubagentEndEntry,
-    SubagentStartEntry, SubagentStatus, ThinkingEntry, ToolCallEntry, ToolOutput, ToolResultEntry,
+    Entry, EntryId, PromptEntry, ResponseEntry, SessionEntry, SubagentEndEntry, SubagentStartEntry,
+    SubagentStatus, ThinkingEntry, ToolCallEntry, ToolOutput, ToolResultEntry,
 };
 use std::collections::HashMap;
 use std::fs;
@@ -189,6 +189,7 @@ fn read_sessions_index(project_dir: &std::path::Path) -> Option<SessionsIndex> {
 /// Each line has a `type` field that determines its structure.
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type")]
+#[allow(dead_code)]
 enum RawLine {
     #[serde(rename = "user")]
     User(RawUserLine),
@@ -210,6 +211,7 @@ enum RawLine {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct RawUserLine {
     #[serde(default)]
     message: Option<RawMessage>,
@@ -224,6 +226,7 @@ struct RawUserLine {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct RawAssistantLine {
     #[serde(default)]
     message: Option<RawApiMessage>,
@@ -234,6 +237,7 @@ struct RawAssistantLine {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct RawSystemLine {
     #[serde(default)]
     subtype: Option<String>,
@@ -250,6 +254,7 @@ struct RawSummaryLine {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct RawProgressLine {
     #[serde(default)]
     data: Option<serde_json::Value>,
@@ -257,6 +262,7 @@ struct RawProgressLine {
 
 /// The `message` field inside a user line.
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct RawMessage {
     #[serde(default)]
     role: Option<String>,
@@ -267,6 +273,7 @@ struct RawMessage {
 /// The `message` field inside an assistant line.
 /// This matches the Anthropic API response format.
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct RawApiMessage {
     #[serde(default)]
     model: Option<String>,
@@ -289,6 +296,7 @@ enum RawContent {
 /// A content block in an assistant message.
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type")]
+#[allow(dead_code)]
 enum RawContentBlock {
     #[serde(rename = "text")]
     Text { text: String },
@@ -350,7 +358,7 @@ fn convert_raw_lines(raw_lines: &[RawLine], info: &SessionInfo) -> Result<spool_
     // Parse timestamps to compute relative ms
     let mut first_timestamp: Option<DateTime<Utc>> = None;
     let mut summary_text: Option<String> = None;
-    let mut agent_version: Option<String> = None;
+    let agent_version: Option<String> = None;
     let mut model_name: Option<String> = None;
 
     // First pass: find metadata
@@ -511,9 +519,7 @@ fn convert_raw_lines(raw_lines: &[RawLine], info: &SessionInfo) -> Result<spool_
                                             Some(SubagentStatus::Completed)
                                         };
                                         entries.push(Entry::SubagentEnd(SubagentEndEntry {
-                                            id: Uuid::new_v7(
-                                                uuid::Timestamp::now(uuid::NoContext),
-                                            ),
+                                            id: Uuid::new_v7(uuid::Timestamp::now(uuid::NoContext)),
                                             ts,
                                             start_id,
                                             summary: None,

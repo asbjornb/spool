@@ -16,6 +16,9 @@ Thanks for your interest in contributing to Spool! This document outlines how to
 git clone https://github.com/asbjornb/spool.git
 cd spool
 
+# Set up pre-commit hooks (runs fmt, clippy, tests on commit)
+bash scripts/setup-hooks.sh
+
 # Build all crates
 cargo build
 

@@ -90,7 +90,7 @@ impl Default for RedactionConfig {
 
 /// Detects secrets in text.
 pub struct SecretDetector {
-    config: RedactionConfig,
+    _config: RedactionConfig,
     patterns: Vec<(Regex, SecretCategory)>,
 }
 
@@ -113,7 +113,8 @@ impl SecretDetector {
             ));
             // Generic "key" followed by long string
             patterns.push((
-                Regex::new(r#"['"](api[_-]?)?key['"]?\s*[:=]\s*['"][a-zA-Z0-9_-]{20,}['"]"#).unwrap(),
+                Regex::new(r#"['"](api[_-]?)?key['"]?\s*[:=]\s*['"][a-zA-Z0-9_-]{20,}['"]"#)
+                    .unwrap(),
                 SecretCategory::ApiKey,
             ));
         }
@@ -178,7 +179,10 @@ impl SecretDetector {
             ));
         }
 
-        Self { config, patterns }
+        Self {
+            _config: config,
+            patterns,
+        }
     }
 
     /// Create a detector with default config.
@@ -277,7 +281,8 @@ mod tests {
     #[test]
     fn test_redact_multiple() {
         let detector = SecretDetector::with_defaults();
-        let text = "Email: test@example.com, Key: sk-ant-api03-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+        let text =
+            "Email: test@example.com, Key: sk-ant-api03-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
         let (redacted, secrets) = detector.redact(text);
         assert_eq!(secrets.len(), 2);
         assert!(redacted.contains("[REDACTED:email]"));

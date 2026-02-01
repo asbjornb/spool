@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "=== pre-commit: cargo fmt --check ==="
+cargo fmt --check
+echo ""
+
+echo "=== pre-commit: cargo clippy ==="
+cargo clippy -- -D warnings
+echo ""
+
+echo "=== pre-commit: cargo test ==="
+cargo test
+echo ""
+
+echo "=== pre-commit: all checks passed ==="
