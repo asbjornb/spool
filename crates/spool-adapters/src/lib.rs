@@ -22,7 +22,7 @@
 //! ```
 
 pub mod claude_code;
-// pub mod codex; // TODO
+pub mod codex;
 // pub mod cursor; // TODO
 // pub mod aider; // TODO
 

@@ -17,9 +17,11 @@ use ratatui::{
     widgets::{Block, Borders, Gauge, Paragraph, Wrap},
     Frame,
 };
-use spool_adapters::claude_code;
+use spool_adapters::{claude_code, codex, AgentType};
 use spool_format::{Entry, SpoolFile, ToolOutput};
+use std::fs::File;
 use std::io;
+use std::io::{BufRead, BufReader};
 use std::path::Path;
 use std::time::{Duration, Instant};
 
@@ -317,17 +319,23 @@ pub fn run(path: &Path, speed: f32) -> Result<()> {
     let spool_file = if path.extension().map(|e| e == "spool").unwrap_or(false) {
         SpoolFile::from_path(path).with_context(|| format!("Failed to read: {:?}", path))?
     } else {
+        let agent = detect_agent_from_log(path)?;
         let session_info = spool_adapters::SessionInfo {
             path: path.to_path_buf(),
-            agent: spool_adapters::AgentType::ClaudeCode,
+            agent,
             created_at: None,
             modified_at: None,
             title: None,
             project_dir: None,
             message_count: None,
         };
-        claude_code::convert(&session_info)
-            .with_context(|| format!("Failed to convert session: {:?}", path))?
+        match agent {
+            AgentType::ClaudeCode => claude_code::convert(&session_info)
+                .with_context(|| format!("Failed to convert session: {:?}", path))?,
+            AgentType::Codex => codex::convert(&session_info)
+                .with_context(|| format!("Failed to convert session: {:?}", path))?,
+            _ => anyhow::bail!("Unsupported agent log: {:?}", path),
+        }
     };
 
     if spool_file.entries.is_empty() {
@@ -363,6 +371,30 @@ pub fn run(path: &Path, speed: f32) -> Result<()> {
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
 
     result
+}
+
+fn detect_agent_from_log(path: &Path) -> Result<AgentType> {
+    let file = File::open(path).with_context(|| format!("Failed to open {:?}", path))?;
+    let mut reader = BufReader::new(file);
+    let mut line = String::new();
+    loop {
+        line.clear();
+        if reader.read_line(&mut line)? == 0 {
+            break;
+        }
+        if line.trim().is_empty() {
+            continue;
+        }
+        let value: serde_json::Value = serde_json::from_str(&line)
+            .with_context(|| format!("Failed to parse JSON line in {:?}", path))?;
+        let kind = value.get("type").and_then(|v| v.as_str()).unwrap_or("");
+        return Ok(match kind {
+            "session_meta" => AgentType::Codex,
+            "user" | "assistant" | "progress" | "summary" | "system" => AgentType::ClaudeCode,
+            _ => AgentType::Unknown,
+        });
+    }
+    Ok(AgentType::Unknown)
 }
 
 fn run_loop(

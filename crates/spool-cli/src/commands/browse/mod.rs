@@ -9,7 +9,7 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::prelude::*;
-use spool_adapters::{claude_code, SessionInfo};
+use spool_adapters::{claude_code, codex, AgentType, SessionInfo};
 use spool_format::{Entry, SecretDetector, ToolOutput};
 use std::io;
 use std::time::{Duration, Instant};
@@ -160,7 +160,7 @@ impl App {
         }
 
         let session = &self.sessions[idx];
-        match claude_code::convert(session) {
+        match convert_session(session) {
             Ok(spool_file) => {
                 self.preview = Some(PreviewData {
                     session_index: idx,
@@ -178,7 +178,7 @@ impl App {
             return;
         };
 
-        let mut spool_file = match claude_code::convert(&session) {
+        let mut spool_file = match convert_session(&session) {
             Ok(f) => f,
             Err(e) => {
                 self.set_status(format!("Export failed: {}", e));
@@ -255,8 +255,7 @@ impl App {
 }
 
 pub fn run(agent_filter: Option<String>) -> Result<()> {
-    let sessions: Vec<SessionInfo> = claude_code::find_sessions()
-        .context("Failed to discover sessions")?
+    let sessions: Vec<SessionInfo> = find_all_sessions()?
         .into_iter()
         .filter(|s| {
             // Filter out sessions known to be empty (message_count == 0).
@@ -300,7 +299,7 @@ pub fn run(agent_filter: Option<String>) -> Result<()> {
                 .iter()
                 .find(|s| s.path.display().to_string() == path)
             {
-                match claude_code::convert(session) {
+                match convert_session(session) {
                     Ok(spool_file) => {
                         println!(
                             "Session: {}",
@@ -324,6 +323,22 @@ pub fn run(agent_filter: Option<String>) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn find_all_sessions() -> Result<Vec<SessionInfo>> {
+    let mut sessions =
+        claude_code::find_sessions().context("Failed to discover Claude Code sessions")?;
+    sessions.extend(codex::find_sessions().context("Failed to discover Codex sessions")?);
+    sessions.sort_by(|a, b| b.modified_at.cmp(&a.modified_at));
+    Ok(sessions)
+}
+
+fn convert_session(session: &SessionInfo) -> Result<spool_format::SpoolFile> {
+    match session.agent {
+        AgentType::ClaudeCode => claude_code::convert(session),
+        AgentType::Codex => codex::convert(session),
+        _ => anyhow::bail!("Unsupported agent: {}", session.agent.as_str()),
+    }
 }
 
 fn run_loop(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &mut App) -> Result<()> {
