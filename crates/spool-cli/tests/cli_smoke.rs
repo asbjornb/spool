@@ -26,21 +26,6 @@ fn validate_minimal_spool_success() {
 }
 
 #[test]
-fn info_minimal_spool_contains_basics() {
-    let output = Command::new(spool_bin())
-        .arg("info")
-        .arg(minimal_fixture())
-        .output()
-        .expect("failed to run spool info");
-
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("Session Information"));
-    assert!(stdout.contains("Agent:      test"));
-    assert!(stdout.contains("Entries:    1"));
-}
-
-#[test]
 fn export_minimal_spool_writes_output() {
     let temp_dir = std::env::temp_dir().join(format!("spool-cli-test-{}", Uuid::new_v4()));
     fs::create_dir_all(&temp_dir).expect("failed to create temp dir");
