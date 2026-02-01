@@ -61,10 +61,7 @@ pub fn find_sessions() -> Result<Vec<SessionInfo>> {
             // Only .jsonl files
             if file_path.extension().map(|e| e == "jsonl").unwrap_or(false) {
                 // Skip subagent files (agent-*.jsonl)
-                let filename = file_path
-                    .file_stem()
-                    .and_then(|s| s.to_str())
-                    .unwrap_or("");
+                let filename = file_path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
                 if filename.starts_with("agent-") {
                     continue;
                 }
@@ -342,10 +339,7 @@ struct RawTextBlock {
 // Conversion logic
 // ============================================================================
 
-fn convert_raw_lines(
-    raw_lines: &[RawLine],
-    info: &SessionInfo,
-) -> Result<spool_format::SpoolFile> {
+fn convert_raw_lines(raw_lines: &[RawLine], info: &SessionInfo) -> Result<spool_format::SpoolFile> {
     let mut entries: Vec<Entry> = Vec::new();
 
     // Track tool call IDs: Claude's tool_use id -> our spool EntryId
@@ -466,21 +460,17 @@ fn convert_raw_lines(
                                     .map(|t| t == "tool_result")
                                     .unwrap_or(false)
                                 {
-                                    let tool_use_id =
-                                        block.tool_use_id.as_deref().unwrap_or("");
+                                    let tool_use_id = block.tool_use_id.as_deref().unwrap_or("");
                                     let call_id = tool_id_map
                                         .get(tool_use_id)
                                         .copied()
                                         .unwrap_or_else(Uuid::nil);
-                                    let is_error =
-                                        block.is_error.unwrap_or(false);
+                                    let is_error = block.is_error.unwrap_or(false);
                                     let content_text = extract_tool_result_text(&block.content);
 
                                     let entry = if is_error {
                                         ToolResultEntry {
-                                            id: Uuid::new_v7(
-                                                uuid::Timestamp::now(uuid::NoContext),
-                                            ),
+                                            id: Uuid::new_v7(uuid::Timestamp::now(uuid::NoContext)),
                                             ts,
                                             call_id,
                                             output: None,
@@ -493,9 +483,7 @@ fn convert_raw_lines(
                                         }
                                     } else {
                                         ToolResultEntry {
-                                            id: Uuid::new_v7(
-                                                uuid::Timestamp::now(uuid::NoContext),
-                                            ),
+                                            id: Uuid::new_v7(uuid::Timestamp::now(uuid::NoContext)),
                                             ts,
                                             call_id,
                                             output: Some(ToolOutput::Text(content_text)),
@@ -525,9 +513,7 @@ fn convert_raw_lines(
                                 RawContentBlock::Text { text } => {
                                     if !text.is_empty() {
                                         entries.push(Entry::Response(ResponseEntry {
-                                            id: Uuid::new_v7(
-                                                uuid::Timestamp::now(uuid::NoContext),
-                                            ),
+                                            id: Uuid::new_v7(uuid::Timestamp::now(uuid::NoContext)),
                                             ts,
                                             content: text.clone(),
                                             truncated: None,
@@ -540,9 +526,7 @@ fn convert_raw_lines(
                                 RawContentBlock::Thinking { thinking, .. } => {
                                     if !thinking.is_empty() {
                                         entries.push(Entry::Thinking(ThinkingEntry {
-                                            id: Uuid::new_v7(
-                                                uuid::Timestamp::now(uuid::NoContext),
-                                            ),
+                                            id: Uuid::new_v7(uuid::Timestamp::now(uuid::NoContext)),
                                             ts,
                                             content: thinking.clone(),
                                             collapsed: Some(true),
@@ -684,7 +668,11 @@ fn extract_title_from_lines(lines: &[RawLine]) -> Option<String> {
                     if !clean.is_empty() {
                         let first_line = clean.lines().next().unwrap_or(&clean);
                         let title = if first_line.len() > 60 {
-                            format!("{}...", &first_line[..57])
+                            let mut end = 57;
+                            while end > 0 && !first_line.is_char_boundary(end) {
+                                end -= 1;
+                            }
+                            format!("{}...", &first_line[..end])
                         } else {
                             first_line.to_string()
                         };
@@ -788,5 +776,50 @@ mod tests {
             extract_title_from_lines(&lines),
             Some("Fix the auth bug in login.py".to_string())
         );
+    }
+
+    #[test]
+    fn test_extract_title_cjk_over_60_bytes() {
+        // Each CJK char is 3 bytes. 21 chars = 63 bytes > 60.
+        let cjk_title = "这是一个很长的中文标题用来测试多字节字符截断功能是否正常";
+        assert!(cjk_title.len() > 60);
+
+        let lines = vec![RawLine::User(RawUserLine {
+            message: Some(RawMessage {
+                role: Some("user".to_string()),
+                content: Some(RawContent::Text(cjk_title.to_string())),
+            }),
+            timestamp: None,
+            uuid: None,
+            is_meta: false,
+            tool_use_result: None,
+        })];
+        let result = extract_title_from_lines(&lines).unwrap();
+        assert!(result.ends_with("..."));
+        // Should not panic and should be valid UTF-8
+        assert!(result.len() <= 60);
+    }
+
+    #[test]
+    fn test_extract_title_arrow_at_byte_57() {
+        // Place '→' (3 bytes) starting at byte 56: "x"*56 + "→" + "extra" = 62 bytes > 60
+        let title = format!("{}→extra_text_here", "x".repeat(56));
+        assert!(title.len() > 60);
+
+        let lines = vec![RawLine::User(RawUserLine {
+            message: Some(RawMessage {
+                role: Some("user".to_string()),
+                content: Some(RawContent::Text(title)),
+            }),
+            timestamp: None,
+            uuid: None,
+            is_meta: false,
+            tool_use_result: None,
+        })];
+        let result = extract_title_from_lines(&lines).unwrap();
+        assert!(result.ends_with("..."));
+        // The '→' starts at byte 56 and ends at 59. Truncating at 57 would be mid-char.
+        // The fix should walk back to 56.
+        assert!(result.is_char_boundary(result.len() - 3)); // before "..."
     }
 }

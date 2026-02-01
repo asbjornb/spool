@@ -50,7 +50,11 @@ fn draw_session_list(f: &mut Frame, area: Rect, app: &App) {
             let agent = session.agent.as_str();
             let date = session
                 .modified_at
-                .map(|d| d.with_timezone(&chrono::Local).format("%m/%d %H:%M").to_string())
+                .map(|d| {
+                    d.with_timezone(&chrono::Local)
+                        .format("%m/%d %H:%M")
+                        .to_string()
+                })
                 .unwrap_or_default();
 
             let agent_badge = match agent {
@@ -66,7 +70,11 @@ fn draw_session_list(f: &mut Frame, area: Rect, app: &App) {
             // Truncate title to fit
             let max_title_len = area.width as usize - agent_badge.len() - date.len() - 6;
             let display_title = if title_text.len() > max_title_len && max_title_len > 3 {
-                format!("{}...", &title_text[..max_title_len.saturating_sub(3)])
+                let mut end = max_title_len.saturating_sub(3);
+                while end > 0 && !title_text.is_char_boundary(end) {
+                    end -= 1;
+                }
+                format!("{}...", &title_text[..end])
             } else {
                 title_text.to_string()
             };
@@ -116,9 +124,7 @@ fn draw_session_list(f: &mut Frame, area: Rect, app: &App) {
 
 /// Render the preview panel (right side).
 fn draw_preview(f: &mut Frame, area: Rect, app: &App) {
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .title(" Preview ");
+    let block = Block::default().borders(Borders::ALL).title(" Preview ");
 
     let Some(ref preview) = app.preview else {
         let msg = if app.filtered_indices.is_empty() {
@@ -139,10 +145,7 @@ fn draw_preview(f: &mut Frame, area: Rect, app: &App) {
         match entry {
             Entry::Session(s) => {
                 lines.push(Line::from(Span::styled(
-                    format!(
-                        "SESSION: {}",
-                        s.title.as_deref().unwrap_or("Untitled")
-                    ),
+                    format!("SESSION: {}", s.title.as_deref().unwrap_or("Untitled")),
                     Style::default()
                         .fg(Color::Cyan)
                         .add_modifier(Modifier::BOLD),
@@ -202,10 +205,7 @@ fn draw_preview(f: &mut Frame, area: Rect, app: &App) {
                             .fg(Color::Blue)
                             .add_modifier(Modifier::BOLD),
                     ),
-                    Span::styled(
-                        tc.tool.clone(),
-                        Style::default().fg(Color::Blue),
-                    ),
+                    Span::styled(tc.tool.clone(), Style::default().fg(Color::Blue)),
                 ]));
                 lines.push(Line::from(format!("  {}", input_preview)));
                 lines.push(Line::from(""));
@@ -262,9 +262,7 @@ fn draw_preview(f: &mut Frame, area: Rect, app: &App) {
             Entry::Error(e) => {
                 lines.push(Line::from(Span::styled(
                     format!("ERROR [{:?}]", e.code),
-                    Style::default()
-                        .fg(Color::Red)
-                        .add_modifier(Modifier::BOLD),
+                    Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
                 )));
                 let truncated = truncate_str(&e.message, area.width as usize - 4);
                 lines.push(Line::from(Span::styled(
@@ -294,10 +292,7 @@ fn draw_preview(f: &mut Frame, area: Rect, app: &App) {
             }
             Entry::Annotation(a) => {
                 lines.push(Line::from(Span::styled(
-                    format!(
-                        "NOTE ({})",
-                        a.author.as_deref().unwrap_or("anonymous")
-                    ),
+                    format!("NOTE ({})", a.author.as_deref().unwrap_or("anonymous")),
                     Style::default().fg(Color::Yellow),
                 )));
                 let truncated = truncate_str(&a.content, area.width as usize - 4);
@@ -333,7 +328,10 @@ fn draw_status_bar(f: &mut Frame, area: Rect, app: &App) {
         }
     } else if app.mode == super::Mode::Search {
         (
-            format!("Search: {}_ | Esc: cancel  Enter: confirm", app.search_input),
+            format!(
+                "Search: {}_ | Esc: cancel  Enter: confirm",
+                app.search_input
+            ),
             Style::default().fg(Color::Yellow),
         )
     } else {
@@ -348,14 +346,64 @@ fn draw_status_bar(f: &mut Frame, area: Rect, app: &App) {
     f.render_widget(bar, area);
 }
 
-/// Truncate a string to fit within `max_len` characters.
+/// Truncate a string to fit within `max_len` bytes, respecting char boundaries.
 fn truncate_str(s: &str, max_len: usize) -> String {
     if s.len() <= max_len {
         s.to_string()
     } else if max_len > 3 {
-        format!("{}...", &s[..max_len - 3])
+        let mut end = max_len - 3;
+        while end > 0 && !s.is_char_boundary(end) {
+            end -= 1;
+        }
+        format!("{}...", &s[..end])
     } else {
-        s[..max_len].to_string()
+        let mut end = max_len;
+        while end > 0 && !s.is_char_boundary(end) {
+            end -= 1;
+        }
+        s[..end].to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn truncate_str_ascii_within_limit() {
+        assert_eq!(truncate_str("hello", 10), "hello");
+    }
+
+    #[test]
+    fn truncate_str_ascii_over_limit() {
+        // "hello world" = 11 bytes, max 8 → "hello..."
+        assert_eq!(truncate_str("hello world", 8), "hello...");
+    }
+
+    #[test]
+    fn truncate_str_multibyte_arrow() {
+        // '→' is 3 bytes (E2 86 92). "abc→def" bytes: [61,62,63,E2,86,92,64,65,66] = 9 bytes.
+        // max 7 → 7-3=4, boundary(4)? byte 4=0x86 (continuation), walk back to 3. result = "abc..."
+        assert_eq!(truncate_str("abc→def", 7), "abc...");
+        // max 9 → 9-3=6, boundary(6)=true (start of 'd'). result = "abc→..."
+        assert_eq!(truncate_str("abc→def", 9), "abc→def"); // 9 == 9, no truncation
+                                                           // max 10 → no truncation
+        assert_eq!(truncate_str("abc→def", 10), "abc→def");
+    }
+
+    #[test]
+    fn truncate_str_emoji_4byte() {
+        // "ab🔒cd" = 2+4+2 = 8 bytes.
+        // max 7 → 7-3=4, boundary(4)? bytes: [61,62,F0,9F,94,92,63,64].
+        // 4 is not boundary (inside emoji), walk to 2. result = "ab..."
+        assert_eq!(truncate_str("ab🔒cd", 7), "ab...");
+    }
+
+    #[test]
+    fn truncate_str_small_max() {
+        // max ≤ 3: no room for "...", just truncate
+        assert_eq!(truncate_str("hello", 3), "hel");
+        assert_eq!(truncate_str("hello", 0), "");
     }
 }
 

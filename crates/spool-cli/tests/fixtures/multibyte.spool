@@ -1,0 +1,6 @@
+{"type": "session", "id": "00000000-0000-0000-0000-000000000001", "ts": 0, "version": "1.0", "agent": "test", "recorded_at": "2025-01-01T00:00:00Z", "title": "Multi-byte test session"}
+{"type": "prompt", "id": "00000000-0000-0000-0000-000000000002", "ts": 100, "content": "这是一个测试提示，包含中文字符。每个中文字符占3个字节。"}
+{"type": "tool_call", "id": "00000000-0000-0000-0000-000000000003", "ts": 200, "tool": "Read", "input": {"path": "test.rs"}}
+{"type": "tool_result", "id": "00000000-0000-0000-0000-000000000004", "ts": 300, "tool": "Read", "output": {"text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx→ remaining content after the arrow"}}
+{"type": "thinking", "id": "00000000-0000-0000-0000-000000000005", "ts": 400, "content": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx→ more thinking content here"}
+{"type": "response", "id": "00000000-0000-0000-0000-000000000006", "ts": 500, "content": "• First point\n→ Second point\n📌 Third point\n🔒 Fourth point\n— Fifth point\nRegular text line\nAnother line\nMore lines\nEven more lines\nFinal line\nOverflow line"}
