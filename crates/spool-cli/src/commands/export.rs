@@ -26,6 +26,7 @@ pub fn run(
             modified_at: None,
             title: None,
             project_dir: None,
+            message_count: None,
         };
         claude_code::convert(&session_info)?
     };

@@ -107,6 +107,8 @@ pub fn find_sessions() -> Result<Vec<SessionInfo>> {
                     .and_then(|s| s.parse::<DateTime<Utc>>().ok())
                     .or(modified_at);
 
+                let message_count = index_entry.and_then(|e| e.message_count);
+
                 sessions.push(SessionInfo {
                     path: file_path,
                     agent: AgentType::ClaudeCode,
@@ -114,6 +116,7 @@ pub fn find_sessions() -> Result<Vec<SessionInfo>> {
                     modified_at,
                     title,
                     project_dir,
+                    message_count,
                 });
             }
         }

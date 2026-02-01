@@ -255,7 +255,15 @@ impl App {
 }
 
 pub fn run(agent_filter: Option<String>) -> Result<()> {
-    let sessions = claude_code::find_sessions().context("Failed to discover sessions")?;
+    let sessions: Vec<SessionInfo> = claude_code::find_sessions()
+        .context("Failed to discover sessions")?
+        .into_iter()
+        .filter(|s| {
+            // Filter out sessions known to be empty (message_count == 0).
+            // Sessions without index data (message_count == None) are kept.
+            s.message_count.map(|c| c > 0).unwrap_or(true)
+        })
+        .collect();
 
     let mut app = App::new(sessions, agent_filter);
 

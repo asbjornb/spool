@@ -44,6 +44,8 @@ pub struct SessionInfo {
     pub title: Option<String>,
     /// Project directory if known
     pub project_dir: Option<PathBuf>,
+    /// Number of messages in the session (from index), if known
+    pub message_count: Option<usize>,
 }
 
 /// Supported agent types.

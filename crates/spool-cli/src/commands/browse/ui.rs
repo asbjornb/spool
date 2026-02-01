@@ -50,7 +50,7 @@ fn draw_session_list(f: &mut Frame, area: Rect, app: &App) {
             let agent = session.agent.as_str();
             let date = session
                 .modified_at
-                .map(|d| d.format("%m/%d").to_string())
+                .map(|d| d.with_timezone(&chrono::Local).format("%m/%d %H:%M").to_string())
                 .unwrap_or_default();
 
             let agent_badge = match agent {
