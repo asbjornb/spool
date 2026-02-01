@@ -231,6 +231,8 @@ The session metadata entry provides information about the recording and MUST be 
 | `duration_ms` | integer | Total session duration in milliseconds |
 | `entry_count` | integer | Total number of entries (including this one) |
 | `tools_used` | array of strings | Tool names invoked during session |
+| `files_modified` | array of strings | File paths modified during the session |
+| `first_prompt` | string | First user prompt text (truncated), for browsing/indexing |
 | `schema_url` | string | URL to the specification version used |
 | `trimmed` | object | Present if file was trimmed (see Section 6.1.2) |
 | `ended` | string | How the session ended (see Section 6.1.3) |
@@ -277,7 +279,7 @@ If omitted, the end state is unknown.
 
 **Example session entry**:
 ```json
-{"id":"018d5f2c-8a3b-7def-9123-456789abcdef","ts":0,"type":"session","version":"1.0","agent":"claude-code","agent_version":"1.2.0","recorded_at":"2025-01-31T10:30:00Z","title":"Security review of auth.py","author":"alex","tags":["security","review"],"duration_ms":45000,"entry_count":12,"tools_used":["read_file","bash"],"ended":"completed"}
+{"id":"018d5f2c-8a3b-7def-9123-456789abcdef","ts":0,"type":"session","version":"1.0","agent":"claude-code","agent_version":"1.2.0","recorded_at":"2025-01-31T10:30:00Z","title":"Security review of auth.py","author":"alex","tags":["security","review"],"duration_ms":45000,"entry_count":12,"tools_used":["read_file","bash"],"files_modified":["src/auth.py"],"first_prompt":"Review this PR for security issues","ended":"completed"}
 ```
 
 ### 6.2 User Prompt (`prompt`)

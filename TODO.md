@@ -18,15 +18,15 @@ Not all need to happen now, but they should be tracked.
 
 ### Spec changes
 
-- [ ] **Add `files_modified` to Session entry** -- List of file paths the agent touched.
+- [x] **Add `files_modified` to Session entry** -- List of file paths the agent touched.
   Useful for pattern analysis, search, and understanding session scope.
   Optional field, adapters populate it from tool call/result data.
 
-- [ ] **Add `token_usage` to Response entries** -- `input_tokens`, `output_tokens`,
+- [x] **Add `token_usage` to Response entries** -- `input_tokens`, `output_tokens`,
   `cache_read_tokens`, `cache_creation_tokens`. Enables cost analysis per-session
   and per-turn. Optional field, adapters extract from API usage data.
 
-- [ ] **Add `model` to Response entries** -- Which model produced this response.
+- [x] **Add `model` to Response entries** -- Which model produced this response.
   Already available in Claude Code logs, useful for comparing model behavior.
 
 - [ ] **Document idle gap compression for players** -- Spec should RECOMMEND that
@@ -34,21 +34,21 @@ Not all need to happen now, but they should be tracked.
   2 seconds. Avoids dead air during replay without changing the format. This is a
   viewer convention, not a format change.
 
-- [ ] **Add `first_prompt` to Session entry** -- First user prompt text (truncated).
+- [x] **Add `first_prompt` to Session entry** -- First user prompt text (truncated).
   Useful for browsing/indexing when no title is set. Adapters already have this data.
 
 ### Adapter improvements
 
-- [ ] **Populate `files_modified`** in Claude Code adapter -- Scan ToolCall entries
-  for Write/Edit/Bash file operations, collect unique paths.
+- [x] **Populate `files_modified`** in Claude Code adapter -- Scan ToolCall entries
+  for Write/Edit/NotebookEdit operations, collect unique paths.
 
-- [ ] **Extract token usage** from Claude Code assistant messages -- The `usage` block
+- [x] **Extract token usage** from Claude Code assistant messages -- The `usage` block
   is already in the raw data, just needs mapping to spool fields.
 
-- [ ] **Extract model name** from Claude Code assistant messages -- Available in
+- [x] **Extract model name** from Claude Code assistant messages -- Available in
   `message.model` field of raw logs.
 
-- [ ] **Filter prompt-suggestion subagents** -- These `agent-aprompt_suggestion-*.jsonl`
+- [x] **Filter prompt-suggestion subagents** -- These `agent-aprompt_suggestion-*.jsonl`
   files are UI-internal and should not appear in converted sessions.
 
 ## Phase 1: Watch -- what's left

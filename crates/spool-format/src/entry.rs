@@ -120,6 +120,12 @@ pub struct SessionEntry {
     /// Tool names invoked during session
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tools_used: Option<Vec<String>>,
+    /// File paths modified during the session
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub files_modified: Option<Vec<String>>,
+    /// First user prompt text (truncated), useful for browsing/indexing
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub first_prompt: Option<String>,
     /// URL to the specification version
     #[serde(skip_serializing_if = "Option::is_none")]
     pub schema_url: Option<String>,

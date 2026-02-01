@@ -375,6 +375,7 @@ fn convert_raw_lines(raw_lines: &[RawLine], info: &SessionInfo) -> Result<spool_
     let mut summary_text: Option<String> = None;
     let agent_version: Option<String> = None;
     let mut model_name: Option<String> = None;
+    let mut first_prompt_text: Option<String> = None;
 
     // First pass: find metadata
     for line in raw_lines {
@@ -385,9 +386,28 @@ fn convert_raw_lines(raw_lines: &[RawLine], info: &SessionInfo) -> Result<spool_
                 }
             }
             RawLine::User(u) => {
-                if first_timestamp.is_none() && !u.is_meta {
-                    if let Some(ref ts) = u.timestamp {
-                        first_timestamp = ts.parse::<DateTime<Utc>>().ok();
+                if !u.is_meta {
+                    if first_timestamp.is_none() {
+                        if let Some(ref ts) = u.timestamp {
+                            first_timestamp = ts.parse::<DateTime<Utc>>().ok();
+                        }
+                    }
+                    // Extract first prompt text
+                    if first_prompt_text.is_none() {
+                        if let Some(ref msg) = u.message {
+                            if let Some(RawContent::Text(ref text)) = msg.content {
+                                if !text.contains("<command-name>")
+                                    && !text.contains("<local-command-stdout>")
+                                    && !text.contains("<local-command-caveat>")
+                                {
+                                    let clean = strip_system_tags(text);
+                                    if !clean.is_empty() {
+                                        first_prompt_text =
+                                            Some(truncate_first_prompt(&clean, 200));
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -428,6 +448,8 @@ fn convert_raw_lines(raw_lines: &[RawLine], info: &SessionInfo) -> Result<spool_
         duration_ms: None,
         entry_count: None,
         tools_used: None,
+        files_modified: None,
+        first_prompt: first_prompt_text,
         schema_url: None,
         trimmed: None,
         ended: Some(spool_format::SessionEndState::Unknown),
@@ -683,12 +705,30 @@ fn convert_raw_lines(raw_lines: &[RawLine], info: &SessionInfo) -> Result<spool_
         tools
     };
 
+    // Collect files modified by file-writing tool calls
+    let files_modified = {
+        let mut paths: Vec<String> = entries
+            .iter()
+            .filter_map(|e| match e {
+                Entry::ToolCall(tc) => extract_modified_path(&tc.tool, &tc.input),
+                _ => None,
+            })
+            .collect::<std::collections::HashSet<_>>()
+            .into_iter()
+            .collect();
+        paths.sort();
+        paths
+    };
+
     // Update session entry with computed metadata
     if let Entry::Session(ref mut s) = entries[0] {
         s.duration_ms = Some(last_ts);
         s.entry_count = Some(entry_count);
         if !tools_used.is_empty() {
             s.tools_used = Some(tools_used);
+        }
+        if !files_modified.is_empty() {
+            s.files_modified = Some(files_modified);
         }
         s.ended = Some(spool_format::SessionEndState::Completed);
     }
@@ -747,6 +787,39 @@ fn strip_system_tags(text: &str) -> String {
         }
     }
     result.trim().to_string()
+}
+
+/// Extract a file path from a tool call if the tool modifies files.
+///
+/// Recognizes Claude Code tool names that modify files:
+/// - `Write`, `write`, `write_file` — `file_path` or `path` parameter
+/// - `Edit`, `edit`, `edit_file` — `file_path` or `path` parameter
+/// - `NotebookEdit`, `notebook_edit` — `notebook_path` parameter
+fn extract_modified_path(tool: &str, input: &serde_json::Value) -> Option<String> {
+    match tool {
+        "Write" | "write" | "write_file" | "Edit" | "edit" | "edit_file" => input
+            .get("file_path")
+            .or_else(|| input.get("path"))
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        "NotebookEdit" | "notebook_edit" => input
+            .get("notebook_path")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        _ => None,
+    }
+}
+
+/// Truncate text for the first_prompt field, respecting UTF-8 boundaries.
+fn truncate_first_prompt(text: &str, max_bytes: usize) -> String {
+    if text.len() <= max_bytes {
+        return text.to_string();
+    }
+    let mut end = max_bytes;
+    while end > 0 && !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    format!("{}...", &text[..end])
 }
 
 /// Extract a title from the first real user prompt.
@@ -998,5 +1071,209 @@ mod tests {
         // Second response should NOT have model or token_usage (avoid double-counting)
         assert!(responses[1].model.is_none());
         assert!(responses[1].token_usage.is_none());
+    }
+
+    #[test]
+    fn test_first_prompt_extraction() {
+        let lines = vec![
+            RawLine::User(RawUserLine {
+                message: Some(RawMessage {
+                    role: Some("user".to_string()),
+                    content: Some(RawContent::Text(
+                        "<local-command-caveat>skip</local-command-caveat>skip this".to_string(),
+                    )),
+                }),
+                timestamp: Some("2026-01-01T00:00:00Z".to_string()),
+                uuid: None,
+                is_meta: false,
+                tool_use_result: None,
+            }),
+            RawLine::User(RawUserLine {
+                message: Some(RawMessage {
+                    role: Some("user".to_string()),
+                    content: Some(RawContent::Text(
+                        "Fix the authentication bug in login.py".to_string(),
+                    )),
+                }),
+                timestamp: Some("2026-01-01T00:00:01Z".to_string()),
+                uuid: None,
+                is_meta: false,
+                tool_use_result: None,
+            }),
+            RawLine::Assistant(RawAssistantLine {
+                message: Some(RawApiMessage {
+                    model: None,
+                    content: Some(vec![RawContentBlock::Text {
+                        text: "I'll fix that.".to_string(),
+                    }]),
+                    usage: None,
+                    stop_reason: None,
+                }),
+                timestamp: Some("2026-01-01T00:00:02Z".to_string()),
+                uuid: None,
+            }),
+        ];
+
+        let info = SessionInfo {
+            path: PathBuf::from("/tmp/test.jsonl"),
+            agent: AgentType::ClaudeCode,
+            created_at: Some("2026-01-01T00:00:00Z".parse().unwrap()),
+            modified_at: None,
+            title: None,
+            project_dir: None,
+            message_count: None,
+        };
+
+        let spool = convert_raw_lines(&lines, &info).unwrap();
+        assert_eq!(
+            spool.session.first_prompt.as_deref(),
+            Some("Fix the authentication bug in login.py")
+        );
+    }
+
+    #[test]
+    fn test_files_modified_extraction() {
+        let lines = vec![
+            RawLine::User(RawUserLine {
+                message: Some(RawMessage {
+                    role: Some("user".to_string()),
+                    content: Some(RawContent::Text("Edit my files".to_string())),
+                }),
+                timestamp: Some("2026-01-01T00:00:00Z".to_string()),
+                uuid: None,
+                is_meta: false,
+                tool_use_result: None,
+            }),
+            RawLine::Assistant(RawAssistantLine {
+                message: Some(RawApiMessage {
+                    model: None,
+                    content: Some(vec![
+                        RawContentBlock::ToolUse {
+                            id: "tool1".to_string(),
+                            name: "Write".to_string(),
+                            input: serde_json::json!({
+                                "file_path": "/home/user/src/main.rs",
+                                "content": "fn main() {}"
+                            }),
+                        },
+                        RawContentBlock::ToolUse {
+                            id: "tool2".to_string(),
+                            name: "Edit".to_string(),
+                            input: serde_json::json!({
+                                "file_path": "/home/user/src/lib.rs",
+                                "old_string": "old",
+                                "new_string": "new"
+                            }),
+                        },
+                        RawContentBlock::ToolUse {
+                            id: "tool3".to_string(),
+                            name: "Read".to_string(),
+                            input: serde_json::json!({
+                                "file_path": "/home/user/src/other.rs"
+                            }),
+                        },
+                        // Duplicate Write to same file — should be deduplicated
+                        RawContentBlock::ToolUse {
+                            id: "tool4".to_string(),
+                            name: "Write".to_string(),
+                            input: serde_json::json!({
+                                "file_path": "/home/user/src/main.rs",
+                                "content": "fn main() { println!() }"
+                            }),
+                        },
+                        RawContentBlock::ToolUse {
+                            id: "tool5".to_string(),
+                            name: "NotebookEdit".to_string(),
+                            input: serde_json::json!({
+                                "notebook_path": "/home/user/notebook.ipynb",
+                                "new_source": "print('hello')"
+                            }),
+                        },
+                    ]),
+                    usage: None,
+                    stop_reason: None,
+                }),
+                timestamp: Some("2026-01-01T00:00:05Z".to_string()),
+                uuid: None,
+            }),
+        ];
+
+        let info = SessionInfo {
+            path: PathBuf::from("/tmp/test.jsonl"),
+            agent: AgentType::ClaudeCode,
+            created_at: Some("2026-01-01T00:00:00Z".parse().unwrap()),
+            modified_at: None,
+            title: None,
+            project_dir: None,
+            message_count: None,
+        };
+
+        let spool = convert_raw_lines(&lines, &info).unwrap();
+        let files = spool.session.files_modified.unwrap();
+
+        // Should contain Write, Edit, NotebookEdit targets but not Read
+        assert_eq!(files.len(), 3);
+        assert!(files.contains(&"/home/user/notebook.ipynb".to_string()));
+        assert!(files.contains(&"/home/user/src/lib.rs".to_string()));
+        assert!(files.contains(&"/home/user/src/main.rs".to_string()));
+        // Should NOT contain the Read target
+        assert!(!files.contains(&"/home/user/src/other.rs".to_string()));
+    }
+
+    #[test]
+    fn test_extract_modified_path() {
+        // Write tool
+        let path = extract_modified_path(
+            "Write",
+            &serde_json::json!({"file_path": "/src/main.rs", "content": ""}),
+        );
+        assert_eq!(path.as_deref(), Some("/src/main.rs"));
+
+        // Edit tool
+        let path = extract_modified_path(
+            "Edit",
+            &serde_json::json!({"file_path": "/src/lib.rs", "old_string": "a", "new_string": "b"}),
+        );
+        assert_eq!(path.as_deref(), Some("/src/lib.rs"));
+
+        // NotebookEdit tool
+        let path = extract_modified_path(
+            "NotebookEdit",
+            &serde_json::json!({"notebook_path": "/nb.ipynb", "new_source": "x"}),
+        );
+        assert_eq!(path.as_deref(), Some("/nb.ipynb"));
+
+        // Read tool — not a write operation
+        let path = extract_modified_path("Read", &serde_json::json!({"file_path": "/src/main.rs"}));
+        assert!(path.is_none());
+
+        // Bash — not tracked
+        let path = extract_modified_path(
+            "Bash",
+            &serde_json::json!({"command": "echo hello > file.txt"}),
+        );
+        assert!(path.is_none());
+    }
+
+    #[test]
+    fn test_truncate_first_prompt() {
+        // Short text — no truncation
+        assert_eq!(truncate_first_prompt("hello", 200), "hello");
+
+        // Exactly at limit
+        let text = "x".repeat(200);
+        assert_eq!(truncate_first_prompt(&text, 200), text);
+
+        // Over limit
+        let text = "x".repeat(210);
+        let result = truncate_first_prompt(&text, 200);
+        assert!(result.ends_with("..."));
+        assert_eq!(result.len(), 203); // 200 + "..."
+
+        // Multi-byte at boundary
+        let text = format!("{}→end", "x".repeat(199)); // → is 3 bytes, starts at 199
+        let result = truncate_first_prompt(&text, 200);
+        assert!(result.ends_with("..."));
+        assert!(result.is_char_boundary(result.len() - 3));
     }
 }

@@ -226,6 +226,8 @@ mod tests {
             duration_ms: None,
             entry_count: None,
             tools_used: None,
+            files_modified: None,
+            first_prompt: None,
             schema_url: None,
             trimmed: None,
             ended: None,
