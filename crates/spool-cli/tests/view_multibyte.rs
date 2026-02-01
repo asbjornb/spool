@@ -1,4 +1,4 @@
-use assert_cmd::Command;
+use assert_cmd::cargo::cargo_bin_cmd;
 
 #[test]
 fn view_multibyte_spool_does_not_panic() {
@@ -7,8 +7,7 @@ fn view_multibyte_spool_does_not_panic() {
         "/tests/fixtures/multibyte.spool"
     );
 
-    Command::cargo_bin("spool")
-        .unwrap()
+    cargo_bin_cmd!("spool")
         .args(["view", fixture])
         .assert()
         .success();

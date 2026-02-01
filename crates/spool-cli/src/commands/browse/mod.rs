@@ -289,7 +289,41 @@ pub fn run(agent_filter: Option<String>) -> Result<()> {
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
 
-    result
+    result?;
+
+    // If a session was selected, convert and display it
+    if let Some((ref msg, _)) = app.status_message {
+        if let Some(path) = msg.strip_prefix("VIEW:") {
+            // Find the session by path
+            if let Some(session) = app
+                .sessions
+                .iter()
+                .find(|s| s.path.display().to_string() == path)
+            {
+                match claude_code::convert(session) {
+                    Ok(spool_file) => {
+                        println!(
+                            "Session: {}",
+                            spool_file.session.title.as_deref().unwrap_or("Untitled")
+                        );
+                        println!("   Agent: {}", spool_file.session.agent);
+                        println!("   Recorded: {}", spool_file.session.recorded_at);
+                        println!("   Entries: {}", spool_file.entries.len());
+                        println!();
+
+                        for entry in &spool_file.entries {
+                            super::view::print_entry(entry);
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to convert session: {}", e);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
 }
 
 fn run_loop(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &mut App) -> Result<()> {
@@ -376,13 +410,6 @@ fn run_loop(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &mut App
                 }
             }
             break;
-        }
-    }
-
-    // After restoring terminal (handled by caller), print view command if needed
-    if let Some((ref msg, _)) = app.status_message {
-        if let Some(path) = msg.strip_prefix("VIEW:") {
-            println!("\nTo view this session:\n  spool view {}", path);
         }
     }
 

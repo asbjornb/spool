@@ -376,6 +376,29 @@ fn truncate_str(s: &str, max_len: usize) -> String {
     }
 }
 
+/// Format tool input JSON for preview display.
+fn format_tool_input(input: &serde_json::Value, max_len: usize) -> String {
+    match input {
+        serde_json::Value::Object(map) => {
+            // Show a compact representation of the most useful fields
+            let mut parts = Vec::new();
+            for (key, val) in map {
+                let val_str = match val {
+                    serde_json::Value::String(s) => truncate_str(s, 40),
+                    other => {
+                        let s = other.to_string();
+                        truncate_str(&s, 40)
+                    }
+                };
+                parts.push(format!("{}: {}", key, val_str));
+            }
+            let joined = parts.join(", ");
+            truncate_str(&joined, max_len)
+        }
+        other => truncate_str(&other.to_string(), max_len),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -415,28 +438,5 @@ mod tests {
         // max ≤ 3: no room for "...", just truncate
         assert_eq!(truncate_str("hello", 3), "hel");
         assert_eq!(truncate_str("hello", 0), "");
-    }
-}
-
-/// Format tool input JSON for preview display.
-fn format_tool_input(input: &serde_json::Value, max_len: usize) -> String {
-    match input {
-        serde_json::Value::Object(map) => {
-            // Show a compact representation of the most useful fields
-            let mut parts = Vec::new();
-            for (key, val) in map {
-                let val_str = match val {
-                    serde_json::Value::String(s) => truncate_str(s, 40),
-                    other => {
-                        let s = other.to_string();
-                        truncate_str(&s, 40)
-                    }
-                };
-                parts.push(format!("{}: {}", key, val_str));
-            }
-            let joined = parts.join(", ");
-            truncate_str(&joined, max_len)
-        }
-        other => truncate_str(&other.to_string(), max_len),
     }
 }

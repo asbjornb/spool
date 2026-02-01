@@ -446,7 +446,7 @@ mod tests {
     fn test_parse_session_entry() {
         let json = r#"{"id":"018d5f2c-0000-7000-8000-000000000000","ts":0,"type":"session","version":"1.0","agent":"claude-code","recorded_at":"2025-01-31T10:30:00Z"}"#;
         let entry: Entry = serde_json::from_str(json).unwrap();
-        
+
         match entry {
             Entry::Session(s) => {
                 assert_eq!(s.version, "1.0");
@@ -460,7 +460,7 @@ mod tests {
     fn test_parse_prompt_entry() {
         let json = r#"{"id":"018d5f2c-0000-7000-8000-000000000001","ts":0,"type":"prompt","content":"Hello, world!"}"#;
         let entry: Entry = serde_json::from_str(json).unwrap();
-        
+
         match entry {
             Entry::Prompt(p) => {
                 assert_eq!(p.content, "Hello, world!");
@@ -473,7 +473,7 @@ mod tests {
     fn test_unknown_entry_type_preserved() {
         let json = r#"{"id":"018d5f2c-0000-7000-8000-000000000001","ts":100,"type":"x_future_type","data":"unknown"}"#;
         let entry: Entry = serde_json::from_str(json).unwrap();
-        
+
         assert!(matches!(entry, Entry::Unknown));
     }
 
@@ -482,7 +482,7 @@ mod tests {
         let json = r#"{"id":"018d5f2c-0000-7000-8000-000000000001","ts":0,"type":"prompt","content":"Hello","x_custom":"value"}"#;
         let entry: Entry = serde_json::from_str(json).unwrap();
         let output = serde_json::to_string(&entry).unwrap();
-        
+
         // Extra fields should be preserved
         assert!(output.contains("x_custom"));
     }

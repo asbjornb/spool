@@ -84,32 +84,18 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Some(Commands::Browse { agent }) => {
-            commands::browse::run(agent)
-        }
-        Some(Commands::View { path }) => {
-            commands::view::run(&path)
-        }
-        Some(Commands::Play { path, speed }) => {
-            commands::play::run(&path, speed)
-        }
+        Some(Commands::Browse { agent }) => commands::browse::run(agent),
+        Some(Commands::View { path }) => commands::view::run(&path),
+        Some(Commands::Play { path, speed }) => commands::play::run(&path, speed),
         Some(Commands::Export {
             source,
             output,
             trim,
             redact,
-        }) => {
-            commands::export::run(&source, output.as_deref(), trim.as_deref(), redact)
-        }
-        Some(Commands::Validate { path }) => {
-            commands::validate::run(&path)
-        }
-        Some(Commands::Info { path }) => {
-            commands::info::run(&path)
-        }
-        Some(Commands::Publish { path, public }) => {
-            commands::publish::run(&path, public)
-        }
+        }) => commands::export::run(&source, output.as_deref(), trim.as_deref(), redact),
+        Some(Commands::Validate { path }) => commands::validate::run(&path),
+        Some(Commands::Info { path }) => commands::info::run(&path),
+        Some(Commands::Publish { path, public }) => commands::publish::run(&path, public),
         None => {
             // Default to browse
             commands::browse::run(None)

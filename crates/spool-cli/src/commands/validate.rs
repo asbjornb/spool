@@ -7,8 +7,7 @@ use std::path::Path;
 pub fn run(path: &Path) -> Result<()> {
     println!("🔍 Validating: {:?}\n", path);
 
-    let file = SpoolFile::from_path(path)
-        .with_context(|| format!("Failed to read: {:?}", path))?;
+    let file = SpoolFile::from_path(path).with_context(|| format!("Failed to read: {:?}", path))?;
 
     let result = validate_default(&file);
 

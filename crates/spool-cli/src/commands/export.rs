@@ -5,12 +5,7 @@ use spool_adapters::claude_code;
 use spool_format::{SecretDetector, SpoolFile};
 use std::path::Path;
 
-pub fn run(
-    source: &Path,
-    output: Option<&Path>,
-    trim: Option<&str>,
-    redact: bool,
-) -> Result<()> {
+pub fn run(source: &Path, output: Option<&Path>, trim: Option<&str>, redact: bool) -> Result<()> {
     println!("📤 Exporting session...");
     println!("   Source: {:?}", source);
 

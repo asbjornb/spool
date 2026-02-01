@@ -163,11 +163,7 @@ impl SpoolFile {
 
     /// Get unique tool names used in the session.
     pub fn tools_used(&self) -> Vec<String> {
-        let mut tools: Vec<String> = self
-            .tool_calls()
-            .iter()
-            .map(|tc| tc.tool.clone())
-            .collect();
+        let mut tools: Vec<String> = self.tool_calls().iter().map(|tc| tc.tool.clone()).collect();
         tools.sort();
         tools.dedup();
         tools
