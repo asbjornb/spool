@@ -4,21 +4,16 @@
 
 ## The Core Insight
 
-You have five features in mind. But they're really one feature described five ways:
+Capabilities
 
 1. Edit context files across repos (CLAUDE.md, skills, commands)
-2. Navigate repos with fast switching
-3. Run parallel AI reviews on diffs
-4. Analyze agent sessions for failures
-5. Share skills and commands with coworkers
-
-**The throughline is context** — the messy, scattered, tribal knowledge that makes AI coding assistants actually useful.
+2. Run parallel AI reviews on diffs
+3. Analyze agent sessions for failures
+4. Share agent logs, skills and commands with coworkers
 
 Today, context is scattered across repos, machines, Slack threads, and people's heads. Spool is a **context layer for AI-assisted development**.
 
 ## The Three Modes
-
-Instead of five features, think of three modes:
 
 ### 1. Watch — See what the AI actually did
 
@@ -49,7 +44,7 @@ We're building Watch first because:
 
 ## The Differentiation
 
-Compared to existing tools (like yaplog.dev):
+Compared to existing tools:
 
 | Existing Tools | Spool |
 |----------------|-------|
@@ -63,7 +58,7 @@ Compared to existing tools (like yaplog.dev):
 
 ### The Killer Feature: Retrospective Sharing
 
-Existing tools require `yap import` *after* a session. You have to decide upfront to record.
+Existing tools require recording a session. You have to decide upfront to record.
 
 Spool is different: "Oh that was cool, let me share it" → open picker → browse existing logs → select → trim → annotate → publish.
 
@@ -93,9 +88,9 @@ Every entry has a unique ID. This enables:
 
 We don't record pixels. We record *meaning*:
 - This is a prompt
-- This is thinking (with duration)
+- This is thinking
 - This is a tool call (with inputs)
-- This is a result (with truncation info)
+- This is a result
 
 ### 5. Open format
 
@@ -107,28 +102,9 @@ The `.spool` format is documented and open. Anyone can:
 
 ## The Positioning
 
-**Yaplog**: "Share your cool agent sessions"
-
 **Spool**: "Understand what your AI agent actually did. Replay sessions, find failures, share patterns."
 
 This makes Spool useful even if you never share anything. The sharing is a bonus. That's how you get daily active usage vs. occasional "look at this cool thing."
-
-## Success Metrics
-
-### Phase 1 (Watch)
-- Users browse sessions weekly
-- Average session viewing time > 2 minutes
-- Users export/trim at least one session
-
-### Phase 2 (Share)
-- Sessions published to spool.dev
-- Embeds used in docs/blogs
-- Repeat visitors to spool.dev
-
-### Phase 3 (Shape)
-- Context files edited through Spool
-- Skills shared between team members
-- Time saved debugging agent failures
 
 ## The Pitch (30 seconds)
 
@@ -136,17 +112,15 @@ This makes Spool useful even if you never share anything. The sharing is a bonus
 
 ## Non-Goals (For Now)
 
-- **Not a git client** — We're not building repo navigation like Fork
+- **Not a git client** — We're not building repo navigation
 - **Not real-time** — We replay recordings, not live sessions
 - **Not an IDE** — We complement existing tools, not replace them
 - **Not enterprise-first** — Build for individual developers, teams follow
 
 ## Open Questions
 
-1. **Pricing model for spool.dev** — Free tier limits? Pro features?
-2. **Team/org features** — Private team catalogs? SSO?
-3. **Editor integration** — VS Code extension? JetBrains plugin?
-4. **Mobile viewer** — Read-only session viewing on mobile?
+1. **Editor integration** — VS Code extension? JetBrains plugin?
+2. **Mobile viewer** — Read-only session viewing on mobile?
 
 ---
 
