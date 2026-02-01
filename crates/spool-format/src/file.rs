@@ -1,6 +1,6 @@
 //! Reading and writing Spool files.
 
-use crate::{Entry, SessionEntry, SpoolError, SpoolResult, ValidationError};
+use crate::{Entry, SessionEntry, SpoolError, SpoolResult};
 use std::fs::File;
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::path::Path;

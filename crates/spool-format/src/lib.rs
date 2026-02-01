@@ -10,20 +10,21 @@
 //!
 //! ## Example
 //!
-//! ```rust
+//! ```rust,no_run
 //! use spool_format::{SpoolFile, Entry, SessionEntry};
 //!
 //! // Read a spool file
 //! let file = SpoolFile::from_path("session.spool")?;
 //!
 //! // Iterate over entries
-//! for entry in file.entries() {
+//! for entry in &file.entries {
 //!     match entry {
 //!         Entry::Prompt(p) => println!("User: {}", p.content),
 //!         Entry::Response(r) => println!("Agent: {}", r.content),
 //!         _ => {}
 //!     }
 //! }
+//! # Ok::<(), spool_format::SpoolError>(())
 //! ```
 
 mod entry;

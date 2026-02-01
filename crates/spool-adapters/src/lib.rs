@@ -10,7 +10,7 @@
 //!
 //! ## Example
 //!
-//! ```rust
+//! ```rust,no_run
 //! use spool_adapters::{claude_code, SessionInfo};
 //!
 //! // Find all Claude Code sessions
@@ -18,6 +18,7 @@
 //!
 //! // Convert a session to Spool format
 //! let spool_file = claude_code::convert(&sessions[0])?;
+//! # Ok::<(), anyhow::Error>(())
 //! ```
 
 pub mod claude_code;

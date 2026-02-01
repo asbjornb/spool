@@ -14,14 +14,14 @@
 use crate::{AgentType, SessionInfo};
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use spool_format::{
     Entry, EntryId, PromptEntry, ResponseEntry, SessionEntry, ThinkingEntry, ToolCallEntry,
     ToolOutput, ToolResultEntry,
 };
 use std::collections::HashMap;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use uuid::Uuid;
 
 /// Find all Claude Code sessions on the system.
@@ -342,10 +342,12 @@ fn convert_raw_session(raw: &RawClaudeSession, info: &SessionInfo) -> Result<spo
     };
 
     // Update session metadata
+    let entry_count = file.entries.len();
+    let tools_used = file.tools_used();
     if let Entry::Session(ref mut s) = file.entries[0] {
         s.duration_ms = Some(ts);
-        s.entry_count = Some(file.entries.len());
-        s.tools_used = Some(file.tools_used());
+        s.entry_count = Some(entry_count);
+        s.tools_used = Some(tools_used);
     }
     file.session = match &file.entries[0] {
         Entry::Session(s) => s.clone(),

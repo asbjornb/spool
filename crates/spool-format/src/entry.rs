@@ -326,6 +326,23 @@ pub enum ErrorCode {
     Custom(String),
 }
 
+impl std::fmt::Display for ErrorCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorCode::RateLimit => write!(f, "rate_limit"),
+            ErrorCode::ApiError => write!(f, "api_error"),
+            ErrorCode::Timeout => write!(f, "timeout"),
+            ErrorCode::AuthFailed => write!(f, "auth_failed"),
+            ErrorCode::NetworkError => write!(f, "network_error"),
+            ErrorCode::ContextOverflow => write!(f, "context_overflow"),
+            ErrorCode::Cancelled => write!(f, "cancelled"),
+            ErrorCode::InternalError => write!(f, "internal_error"),
+            ErrorCode::Unknown => write!(f, "unknown"),
+            ErrorCode::Custom(s) => write!(f, "{}", s),
+        }
+    }
+}
+
 /// Subagent start entry
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SubagentStartEntry {

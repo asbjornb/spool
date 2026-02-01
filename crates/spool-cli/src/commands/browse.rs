@@ -3,7 +3,7 @@
 use anyhow::Result;
 use spool_adapters::claude_code;
 
-pub fn run(agent_filter: Option<String>) -> Result<()> {
+pub fn run(_agent_filter: Option<String>) -> Result<()> {
     println!("🔍 Searching for agent sessions...\n");
 
     // Find Claude Code sessions

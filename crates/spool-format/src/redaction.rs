@@ -4,7 +4,6 @@
 //! never stored in the output file.
 
 use regex::Regex;
-use std::borrow::Cow;
 
 /// A detected secret in text.
 #[derive(Debug, Clone)]
