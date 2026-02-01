@@ -33,7 +33,7 @@ Full specification: [spec/SPEC.md](spec/SPEC.md)
 Spool doesn't require you to record anything upfront. Agents already store their logs:
 
 - **Claude Code**: `~/.claude/projects/*/*.jsonl` (session files live directly in each project directory)
-- **Codex**: `~/.codex/logs/` (planned)
+- **Codex**: `~/.codex/sessions/**/rollout-*.jsonl`
 
 Spool reads those logs, converts them to the structured `.spool` format, and lets you work with them. Sharing is **retrospective, not premeditated** -- you had a good session, now you share it.
 
@@ -84,7 +84,7 @@ Early development. Phase 1 is in progress.
 | Agent | Status |
 |-------|--------|
 | Claude Code | In progress (primary target) |
-| Codex CLI | Planned |
+| Codex CLI | ✅ Implemented |
 | Cursor | Planned |
 | Aider | Planned |
 

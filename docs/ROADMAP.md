@@ -63,7 +63,7 @@ This document outlines the phased development approach for Spool.
 ### Week 6: Export & Polish
 
 - [ ] Interactive redaction review UI (confirm/dismiss detections)
-- [ ] Codex adapter
+- [x] Codex adapter
 - [ ] More example .spool files
 - [ ] JSON Schema for the format
 - [ ] Format improvements: `files_modified`, `token_usage`, `model` on entries

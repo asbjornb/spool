@@ -70,7 +70,7 @@ Spool is different: "Oh that was cool, let me share it" → open picker → brow
 
 Agents already store logs. Don't make users change their workflow. Find the logs where they are:
 - Claude Code: `~/.claude/projects/*/*.jsonl`
-- Codex: `~/.codex/logs/` (TBD)
+- Codex: `~/.codex/sessions/**/rollout-*.jsonl`
 
 ### 2. Destructive redaction
 

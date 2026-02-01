@@ -63,10 +63,10 @@ Not all need to happen now, but they should be tracked.
   - Enter to open detail view, e to export, r to export+redact
   - ratatui 0.28 + crossterm 0.28 already in workspace deps
 
-- [ ] **Build Codex CLI adapter** (`crates/spool-adapters/src/codex.rs`)
-  - Research where Codex stores logs (~/.codex/ ?)
+- [x] **Build Codex CLI adapter** (`crates/spool-adapters/src/codex.rs`)
+  - Codex logs live in `~/.codex/sessions/**/rollout-*.jsonl`
   - Implement find_sessions() + convert()
-  - Register in lib.rs (currently commented out)
+  - Register in lib.rs
   - Update browse to search both Claude Code and Codex
 
 - [ ] **Add more example .spool files** (spec/examples/)
