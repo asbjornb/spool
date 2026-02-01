@@ -1084,3 +1084,41 @@ This schema is informative and may not capture all constraints in this specifica
 ### Version 1.0 (2025-01-31)
 
 - Initial release
+
+---
+
+## Appendix C: Playback Recommendations (Informative)
+
+This appendix provides guidance for implementations that replay Spool sessions in real time (e.g., TUI players, web viewers). These are recommendations, not format requirements.
+
+### C.1 Idle Gap Compression
+
+Agent sessions often include long pauses where the user is thinking between prompts. Replaying these pauses in real time creates dead air that degrades the viewing experience.
+
+Players SHOULD compress gaps immediately before `prompt` entries to a maximum of **2 seconds**. This preserves the conversational rhythm while eliminating minutes-long pauses.
+
+```
+Original timeline:         Compressed timeline:
+  response  @ 1:00           response  @ 1:00
+  [user thinks for 5 min]    [compressed to 2s]
+  prompt    @ 6:00           prompt    @ 1:02
+  response  @ 6:30           response  @ 1:32
+```
+
+Implementations MAY allow users to disable compression or adjust the maximum gap duration.
+
+### C.2 Thinking Block Compression
+
+`thinking` entries represent the agent's internal reasoning, which may span minutes of wall-clock time. During playback, showing a thinking block for its full original duration is unnecessary since the content is typically displayed as a collapsed summary.
+
+Players SHOULD compress gaps immediately after `thinking` entries to a maximum of **2 seconds**. This gives viewers time to register the thinking indicator before the next entry appears.
+
+### C.3 Speed Controls
+
+Players SHOULD support variable playback speed. Recommended speed options: 0.25x, 0.5x, 1x, 2x, 4x, 8x, 16x.
+
+Gap compression (C.1 and C.2) SHOULD be applied **before** the speed multiplier. That is, a 2-second compressed gap at 2x speed results in a 1-second real-time delay.
+
+### C.4 Entry Stepping
+
+In addition to real-time playback, players SHOULD support stepping through entries one at a time (forward and backward). When stepping, timing is irrelevant — each step reveals or hides exactly one entry.

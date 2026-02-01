@@ -224,6 +224,9 @@ struct RawUserLine {
     is_meta: bool,
     #[serde(rename = "toolUseResult", default)]
     tool_use_result: Option<serde_json::Value>,
+    /// Claude Code CLI version (e.g. "2.1.29")
+    #[serde(default)]
+    version: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -235,6 +238,9 @@ struct RawAssistantLine {
     timestamp: Option<String>,
     #[serde(default)]
     uuid: Option<String>,
+    /// Claude Code CLI version (e.g. "2.1.29")
+    #[serde(default)]
+    version: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -373,7 +379,7 @@ fn convert_raw_lines(raw_lines: &[RawLine], info: &SessionInfo) -> Result<spool_
     // Parse timestamps to compute relative ms
     let mut first_timestamp: Option<DateTime<Utc>> = None;
     let mut summary_text: Option<String> = None;
-    let agent_version: Option<String> = None;
+    let mut agent_version: Option<String> = None;
     let mut model_name: Option<String> = None;
     let mut first_prompt_text: Option<String> = None;
 
@@ -386,6 +392,9 @@ fn convert_raw_lines(raw_lines: &[RawLine], info: &SessionInfo) -> Result<spool_
                 }
             }
             RawLine::User(u) => {
+                if agent_version.is_none() {
+                    agent_version = u.version.clone();
+                }
                 if !u.is_meta {
                     if first_timestamp.is_none() {
                         if let Some(ref ts) = u.timestamp {
@@ -412,6 +421,9 @@ fn convert_raw_lines(raw_lines: &[RawLine], info: &SessionInfo) -> Result<spool_
                 }
             }
             RawLine::Assistant(a) => {
+                if agent_version.is_none() {
+                    agent_version = a.version.clone();
+                }
                 if let Some(ref msg) = a.message {
                     if model_name.is_none() {
                         model_name = msg.model.clone();
@@ -933,6 +945,7 @@ mod tests {
                 uuid: None,
                 is_meta: true,
                 tool_use_result: None,
+                version: None,
             }),
             RawLine::User(RawUserLine {
                 message: Some(RawMessage {
@@ -943,6 +956,7 @@ mod tests {
                 uuid: None,
                 is_meta: false,
                 tool_use_result: None,
+                version: None,
             }),
         ];
         assert_eq!(
@@ -966,6 +980,7 @@ mod tests {
             uuid: None,
             is_meta: false,
             tool_use_result: None,
+            version: None,
         })];
         let result = extract_title_from_lines(&lines).unwrap();
         assert!(result.ends_with("..."));
@@ -988,6 +1003,7 @@ mod tests {
             uuid: None,
             is_meta: false,
             tool_use_result: None,
+            version: None,
         })];
         let result = extract_title_from_lines(&lines).unwrap();
         assert!(result.ends_with("..."));
@@ -1008,6 +1024,7 @@ mod tests {
                 uuid: None,
                 is_meta: false,
                 tool_use_result: None,
+                version: None,
             }),
             RawLine::Assistant(RawAssistantLine {
                 message: Some(RawApiMessage {
@@ -1030,6 +1047,7 @@ mod tests {
                 }),
                 timestamp: Some("2026-01-01T00:00:05Z".to_string()),
                 uuid: None,
+                version: None,
             }),
         ];
 
@@ -1087,6 +1105,7 @@ mod tests {
                 uuid: None,
                 is_meta: false,
                 tool_use_result: None,
+                version: None,
             }),
             RawLine::User(RawUserLine {
                 message: Some(RawMessage {
@@ -1099,6 +1118,7 @@ mod tests {
                 uuid: None,
                 is_meta: false,
                 tool_use_result: None,
+                version: None,
             }),
             RawLine::Assistant(RawAssistantLine {
                 message: Some(RawApiMessage {
@@ -1111,6 +1131,7 @@ mod tests {
                 }),
                 timestamp: Some("2026-01-01T00:00:02Z".to_string()),
                 uuid: None,
+                version: None,
             }),
         ];
 
@@ -1143,6 +1164,7 @@ mod tests {
                 uuid: None,
                 is_meta: false,
                 tool_use_result: None,
+                version: None,
             }),
             RawLine::Assistant(RawAssistantLine {
                 message: Some(RawApiMessage {
@@ -1195,6 +1217,7 @@ mod tests {
                 }),
                 timestamp: Some("2026-01-01T00:00:05Z".to_string()),
                 uuid: None,
+                version: None,
             }),
         ];
 
