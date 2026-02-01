@@ -87,7 +87,7 @@ Not all need to happen now, but they should be tracked.
   - Speed: 0.25x to 16x, progress bar with timeline position
   - Supports .spool files and raw Claude Code session logs
 
-- [ ] **Interactive trimming**
+- [x] **Interactive trimming**
   - `[` mark start, `]` mark end in TUI
   - Preview trimmed result
   - `x` to export selection

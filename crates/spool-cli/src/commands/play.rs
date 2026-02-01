@@ -19,7 +19,7 @@ use ratatui::{
 };
 use spool_format::{Entry, SpoolFile, ToolOutput};
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use super::agent::load_spool_or_log;
@@ -42,8 +42,10 @@ struct TimelineEntry {
 
 /// Application state for the player.
 struct PlayApp {
-    /// All entries from the session.
-    entries: Vec<Entry>,
+    /// Original source path (log or .spool)
+    source_path: PathBuf,
+    /// Loaded Spool file (for export/trim).
+    spool_file: SpoolFile,
     /// Session title for display.
     session_title: String,
     /// Pre-computed playback timeline with compressed timestamps.
@@ -67,21 +69,27 @@ struct PlayApp {
     /// Scroll offset in the rendered entry view.
     scroll_offset: usize,
 
+    // Trimming state
+    /// Marked trim start timestamp (ms, original timeline).
+    trim_start_ms: Option<u64>,
+    /// Marked trim end timestamp (ms, original timeline).
+    trim_end_ms: Option<u64>,
+    /// Status message for UI feedback.
+    status_message: Option<String>,
+
     should_quit: bool,
 }
 
 impl PlayApp {
-    fn new(spool_file: SpoolFile, speed: f32) -> Self {
+    fn new(spool_file: SpoolFile, source_path: PathBuf, speed: f32) -> Self {
         let session_title = spool_file
             .session
             .title
             .clone()
             .unwrap_or_else(|| "Untitled".to_string());
 
-        let entries = spool_file.entries;
-
         // Build compressed timeline
-        let timeline = build_timeline(&entries);
+        let timeline = build_timeline(&spool_file.entries);
         let total_duration_ms = timeline.last().map(|t| t.playback_ms).unwrap_or(0);
 
         // Find the closest speed index
@@ -98,7 +106,8 @@ impl PlayApp {
             .unwrap_or(2); // default 1.0x
 
         PlayApp {
-            entries,
+            source_path,
+            spool_file,
             session_title,
             timeline,
             total_duration_ms,
@@ -108,6 +117,9 @@ impl PlayApp {
             playback_elapsed_ms: 0,
             last_tick: Instant::now(),
             scroll_offset: 0,
+            trim_start_ms: None,
+            trim_end_ms: None,
+            status_message: None,
             should_quit: false,
         }
     }
@@ -180,6 +192,89 @@ impl PlayApp {
         self.visible_count = self.timeline.len();
         self.playback_elapsed_ms = self.total_duration_ms;
         self.auto_scroll();
+    }
+
+    fn current_entry_timestamp(&self) -> Option<u64> {
+        if self.visible_count == 0 {
+            return None;
+        }
+        for idx in (0..self.visible_count).rev() {
+            let te = self.timeline.get(idx)?;
+            if let Some(ts) = self.spool_file.entries.get(te.entry_index)?.timestamp() {
+                return Some(ts);
+            }
+        }
+        None
+    }
+
+    fn mark_trim_start(&mut self) {
+        match self.current_entry_timestamp() {
+            Some(ts) => {
+                self.trim_start_ms = Some(ts);
+                self.status_message = Some(format!("Trim start set to {}", format_duration_ms(ts)));
+            }
+            None => {
+                self.status_message = Some("Cannot mark trim start yet".to_string());
+            }
+        }
+    }
+
+    fn mark_trim_end(&mut self) {
+        match self.current_entry_timestamp() {
+            Some(ts) => {
+                self.trim_end_ms = Some(ts);
+                self.status_message = Some(format!("Trim end set to {}", format_duration_ms(ts)));
+            }
+            None => {
+                self.status_message = Some("Cannot mark trim end yet".to_string());
+            }
+        }
+    }
+
+    fn trim_range(&self) -> Option<(u64, u64)> {
+        match (self.trim_start_ms, self.trim_end_ms) {
+            (Some(start), Some(end)) if start < end => Some((start, end)),
+            _ => None,
+        }
+    }
+
+    fn trim_preview(&self, start: u64, end: u64) -> (usize, u64) {
+        let mut kept = 1; // session entry always kept
+        for entry in self.spool_file.entries.iter().skip(1) {
+            if let Some(ts) = entry.timestamp() {
+                if ts >= start && ts <= end {
+                    kept += 1;
+                }
+            }
+        }
+        (kept, end.saturating_sub(start))
+    }
+
+    fn export_trimmed(&mut self) {
+        let (start, end) = match self.trim_range() {
+            Some(range) => range,
+            None => {
+                self.status_message = Some("Trim range not set".to_string());
+                return;
+            }
+        };
+
+        let mut trimmed = self.spool_file.clone();
+        trimmed.trim(start, end);
+
+        let output_path = next_trimmed_path(&self.source_path);
+        match trimmed.write_to_path(&output_path) {
+            Ok(()) => {
+                let name = output_path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("trimmed.spool");
+                self.status_message = Some(format!("Exported {}", name));
+            }
+            Err(err) => {
+                self.status_message = Some(format!("Export failed: {}", err));
+            }
+        }
     }
 
     fn tick(&mut self) {
@@ -321,7 +416,7 @@ pub fn run(path: &Path, speed: f32) -> Result<()> {
         return Ok(());
     }
 
-    let mut app = PlayApp::new(spool_file, speed);
+    let mut app = PlayApp::new(spool_file, path.to_path_buf(), speed);
 
     // Set up terminal
     enable_raw_mode()?;
@@ -380,6 +475,9 @@ fn run_loop(
                     KeyCode::End | KeyCode::Char('G') => app.jump_to_end(),
                     KeyCode::PageUp | KeyCode::Char('k') => app.scroll_up(10),
                     KeyCode::PageDown | KeyCode::Char('j') => app.scroll_down(10),
+                    KeyCode::Char('[') => app.mark_trim_start(),
+                    KeyCode::Char(']') => app.mark_trim_end(),
+                    KeyCode::Char('x') => app.export_trimmed(),
                     _ => {}
                 }
             }
@@ -461,7 +559,7 @@ fn draw_entries(f: &mut Frame, area: Rect, app: &mut PlayApp) {
 
     for ti in 0..app.visible_count {
         let te = &app.timeline[ti];
-        let entry = &app.entries[te.entry_index];
+        let entry = &app.spool_file.entries[te.entry_index];
 
         render_entry_lines(entry, &mut lines, inner.width as usize);
     }
@@ -506,10 +604,38 @@ fn draw_controls(f: &mut Frame, area: Rect, app: &PlayApp) {
     } else {
         "Space:play"
     };
-    let text = format!(
-        " {}  h/l:step  +/-:speed  j/k:scroll  g/G:start/end  q:quit",
-        play_key
+    let trim_label = match (app.trim_start_ms, app.trim_end_ms) {
+        (None, None) => "Trim: [unset]".to_string(),
+        (Some(start), None) => format!("Trim start: {}", format_duration_ms(start)),
+        (None, Some(end)) => format!("Trim end: {}", format_duration_ms(end)),
+        (Some(start), Some(end)) => {
+            if start < end {
+                let (kept, duration) = app.trim_preview(start, end);
+                format!(
+                    "Trim: {}-{} ({} entries, {})",
+                    format_duration_ms(start),
+                    format_duration_ms(end),
+                    kept,
+                    format_duration_ms(duration)
+                )
+            } else {
+                format!(
+                    "Trim: {}-{} (invalid)",
+                    format_duration_ms(start),
+                    format_duration_ms(end)
+                )
+            }
+        }
+    };
+
+    let mut text = format!(
+        " {}  h/l:step  +/-:speed  j/k:scroll  g/G:start/end  [:start  ]:end  x:export  q:quit  {}",
+        play_key, trim_label
     );
+    if let Some(ref status) = app.status_message {
+        text.push_str("  |  ");
+        text.push_str(status);
+    }
 
     let paragraph =
         Paragraph::new(text).style(Style::default().fg(Color::DarkGray).bg(Color::Black));
@@ -769,11 +895,36 @@ fn format_tool_input(input: &serde_json::Value, max_len: usize) -> String {
     }
 }
 
+fn next_trimmed_path(source: &Path) -> PathBuf {
+    let parent = source.parent().unwrap_or_else(|| Path::new("."));
+    let stem = source
+        .file_stem()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+
+    let base = parent.join(format!("{}.trimmed.spool", stem));
+    if !base.exists() {
+        return base;
+    }
+
+    for index in 1..=999 {
+        let candidate = parent.join(format!("{}.trimmed-{}.spool", stem, index));
+        if !candidate.exists() {
+            return candidate;
+        }
+    }
+
+    base
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use spool_format::{PromptEntry, ResponseEntry, SessionEntry, ThinkingEntry};
     use std::collections::HashMap;
+    use std::fs;
+    use std::path::PathBuf;
     use uuid::Uuid;
 
     fn make_session_entry() -> Entry {
@@ -905,5 +1056,52 @@ mod tests {
         assert_eq!(format_duration_ms(60_000), "1:00");
         assert_eq!(format_duration_ms(90_000), "1:30");
         assert_eq!(format_duration_ms(3_661_000), "61:01");
+    }
+
+    #[test]
+    fn test_trim_preview_counts_entries() {
+        let session = match make_session_entry() {
+            Entry::Session(s) => s,
+            _ => unreachable!(),
+        };
+        let mut file = SpoolFile::new(session);
+        file.add_entry(make_prompt(1000, "hello"));
+        file.add_entry(make_response(2000, "ok"));
+        file.add_entry(make_prompt(3000, "later"));
+
+        let app = PlayApp::new(file, PathBuf::from("session.spool"), 1.0);
+        let (kept, duration) = app.trim_preview(1500, 2500);
+        assert_eq!(kept, 2);
+        assert_eq!(duration, 1000);
+    }
+
+    #[test]
+    fn test_current_entry_timestamp_skips_unknown() {
+        let session = match make_session_entry() {
+            Entry::Session(s) => s,
+            _ => unreachable!(),
+        };
+        let mut file = SpoolFile::new(session);
+        file.add_entry(make_prompt(1000, "hello"));
+        file.add_entry(Entry::Unknown);
+
+        let mut app = PlayApp::new(file, PathBuf::from("session.spool"), 1.0);
+        app.visible_count = 3;
+
+        assert_eq!(app.current_entry_timestamp(), Some(1000));
+    }
+
+    #[test]
+    fn test_next_trimmed_path_increments() {
+        let dir = std::env::temp_dir().join(format!("spool-play-{}", Uuid::new_v4()));
+        fs::create_dir_all(&dir).unwrap();
+
+        let source = dir.join("session.spool");
+        let first = next_trimmed_path(&source);
+        assert_eq!(first, dir.join("session.trimmed.spool"));
+
+        fs::write(&first, "x").unwrap();
+        let second = next_trimmed_path(&source);
+        assert_eq!(second, dir.join("session.trimmed-1.spool"));
     }
 }
