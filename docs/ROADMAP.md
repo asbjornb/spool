@@ -66,6 +66,8 @@ This document outlines the phased development approach for Spool.
 - [ ] Codex adapter
 - [ ] More example .spool files
 - [ ] JSON Schema for the format
+- [ ] Format improvements: `files_modified`, `token_usage`, `model` on entries
+- [ ] Idle gap compression in player (compress user think-time to max 2s)
 - [ ] Release v0.1.0
 
 ### Deliverables
@@ -105,9 +107,10 @@ spool view session.spool
 ### Week 3-4: unspool.dev Backend
 
 - [ ] User authentication (GitHub OAuth)
-- [ ] Session upload API
+- [ ] Session upload API (accept gzipped .spool, ~125 KB avg per session)
 - [ ] Public/private visibility
 - [ ] Unique URLs (`unspool.dev/username/slug`)
+- [ ] Storage: gzipped spool on object storage (S3/R2). ~12 GB per 1K users.
 
 ### Week 5-6: Discovery & Social
 
@@ -251,6 +254,12 @@ Each crate is independently versioned and can be used as a library.
 2. **unspool.dev hosting** — Vercel? Fly.io? Self-managed?
 3. **Search backend** — Meilisearch? Typesense? PostgreSQL full-text?
 4. **Authentication** — GitHub-only? Add email/password?
+5. **Parallel subagents in replay** — Multiple subagents can run concurrently.
+   Flat timeline interleaves their events by timestamp. Viewer could show
+   side-by-side panels keyed by subagent ID. No format change needed, but
+   the viewer needs to handle this gracefully.
+6. **Token usage / cost tracking** — Display per-session and per-turn costs.
+   Requires `token_usage` and `model` fields on Response entries (see TODO).
 
 ---
 

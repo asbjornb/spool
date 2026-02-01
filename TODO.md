@@ -11,6 +11,46 @@ Current state as of 2026-02-01. All items below are ordered by dependency.
 - [x] **CLI commands** -- `browse` (basic list), `view`, `export` (with `--trim` and `--redact`), `info`, `validate`
 - [x] **Build is green** -- `cargo build` + `cargo test` (24 tests pass)
 
+## Format Improvements (from Claude Code session analysis)
+
+These are improvements inspired by studying the native Claude Code `.jsonl` format.
+Not all need to happen now, but they should be tracked.
+
+### Spec changes
+
+- [ ] **Add `files_modified` to Session entry** -- List of file paths the agent touched.
+  Useful for pattern analysis, search, and understanding session scope.
+  Optional field, adapters populate it from tool call/result data.
+
+- [ ] **Add `token_usage` to Response entries** -- `input_tokens`, `output_tokens`,
+  `cache_read_tokens`, `cache_creation_tokens`. Enables cost analysis per-session
+  and per-turn. Optional field, adapters extract from API usage data.
+
+- [ ] **Add `model` to Response entries** -- Which model produced this response.
+  Already available in Claude Code logs, useful for comparing model behavior.
+
+- [ ] **Document idle gap compression for players** -- Spec should RECOMMEND that
+  players compress gaps before Prompt entries (user think-time) to a max of e.g.
+  2 seconds. Avoids dead air during replay without changing the format. This is a
+  viewer convention, not a format change.
+
+- [ ] **Add `first_prompt` to Session entry** -- First user prompt text (truncated).
+  Useful for browsing/indexing when no title is set. Adapters already have this data.
+
+### Adapter improvements
+
+- [ ] **Populate `files_modified`** in Claude Code adapter -- Scan ToolCall entries
+  for Write/Edit/Bash file operations, collect unique paths.
+
+- [ ] **Extract token usage** from Claude Code assistant messages -- The `usage` block
+  is already in the raw data, just needs mapping to spool fields.
+
+- [ ] **Extract model name** from Claude Code assistant messages -- Available in
+  `message.model` field of raw logs.
+
+- [ ] **Filter prompt-suggestion subagents** -- These `agent-aprompt_suggestion-*.jsonl`
+  files are UI-internal and should not appear in converted sessions.
+
 ## Phase 1: Watch -- what's left
 
 ### Ready now (no blockers)
@@ -96,3 +136,22 @@ Current state as of 2026-02-01. All items below are ordered by dependency.
 - The `agent_version` variable in claude_code.rs is declared `mut` but never assigned.
   Remove the `mut` or populate it from the `version` field on raw lines (it's the
   Claude Code CLI version like "2.1.29").
+
+## Storage Footprint Estimates (for unspool.dev planning)
+
+Based on analysis of real Claude Code sessions (18 sessions, single user):
+
+- **Raw Claude Code logs**: ~479 KB average, ~427 KB median, 1.8 MB max
+- **Spool format**: ~40-50% of raw (strips progress events, snapshots, hooks, repeated metadata)
+- **Estimated spool avg**: ~200 KB per session (short sessions), ~1 MB for longer sessions
+
+Extrapolated for unspool.dev (assuming 5x session length for typical users):
+
+| Scale | Uncompressed | Gzipped (~8x) |
+|-------|-------------|----------------|
+| Per session | ~1 MB | ~125 KB |
+| Per user (100 sessions) | ~100 MB | ~12.5 MB |
+| 1,000 users | ~100 GB | ~12 GB |
+| 10,000 users | ~1 TB | ~120 GB |
+
+Key: JSONL compresses very well. Store gzipped on object storage (S3/R2).
