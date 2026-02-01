@@ -105,17 +105,24 @@ Not all need to happen now, but they should be tracked.
 
 ## Phase 2: Share
 
+Architecture decided: Cloudflare-native stack (Pages + Workers + D1 + R2).
+See [docs/UNSPOOL_ARCHITECTURE.md](docs/UNSPOOL_ARCHITECTURE.md) for full design.
+Scaffolding (Worker, schema, config) in `service/`.
+
 - [ ] **Web viewer component** (web/viewer/)
   - Renders .spool in browser, playback controls, tool filtering, search
   - Deep links (#entry-id), responsive, embeddable
-  - Tech TBD: Svelte / vanilla JS / Preact
+  - SvelteKit or SolidStart (small bundles, SSR-capable)
 
 - [ ] **unspool.dev backend** (service/)
-  - GitHub OAuth, upload API, public/private, unique URLs
+  - Cloudflare Workers API, D1 metadata, R2 blob storage
+  - GitHub + Google OAuth, upload API, public/unlisted/private visibility
+  - nanoid short URLs (`unspool.dev/s/:id`)
+  - TTL: 14 days anonymous, permanent for authed users
   - Implement `spool publish` command
 
 - [ ] **Embeds + static site generator**
-  - `<script>` / `<iframe>` embed support
+  - `<iframe>` embed support (`/embed/:id` minimal viewer)
   - OpenGraph cards for link previews
   - `spool build` generates static site from .spool directory
 

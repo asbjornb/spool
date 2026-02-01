@@ -1,0 +1,30 @@
+# unspool.dev Cloudflare Worker configuration
+name = "unspool-api"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+# Environment bindings
+[vars]
+ENVIRONMENT = "development"
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "unspool-db"
+database_id = "<your-database-id>"  # Run: wrangler d1 create unspool-db
+
+# R2 Bucket
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "unspool-sessions"    # Run: wrangler r2 bucket create unspool-sessions
+
+# Cron trigger for TTL cleanup (runs daily at 3am UTC)
+[triggers]
+crons = ["0 3 * * *"]
+
+# Production overrides
+[env.production]
+vars = { ENVIRONMENT = "production" }
+routes = [
+  { pattern = "api.unspool.dev/*", zone_name = "unspool.dev" }
+]

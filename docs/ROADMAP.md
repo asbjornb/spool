@@ -250,16 +250,15 @@ Each crate is independently versioned and can be used as a library.
 
 ## Open Technical Questions
 
-1. **Web viewer tech stack** — React? Svelte? Vanilla JS?
-2. **unspool.dev hosting** — Vercel? Fly.io? Self-managed?
-3. **Search backend** — Meilisearch? Typesense? PostgreSQL full-text?
-4. **Authentication** — GitHub-only? Add email/password?
+1. ~~**Web viewer tech stack**~~ — SvelteKit or SolidStart (see [UNSPOOL_ARCHITECTURE.md](UNSPOOL_ARCHITECTURE.md))
+2. ~~**unspool.dev hosting**~~ — Cloudflare (Pages + Workers + D1 + R2). $0-20/month at moderate scale. See [UNSPOOL_ARCHITECTURE.md](UNSPOOL_ARCHITECTURE.md)
+3. **Search backend** — TBD. D1 full-text may suffice initially; evaluate Meilisearch/Typesense at scale.
+4. ~~**Authentication**~~ — GitHub + Google OAuth. Custom JWT. Device flow for CLI auth (see architecture doc).
 5. **Parallel subagents in replay** — Multiple subagents can run concurrently.
    Flat timeline interleaves their events by timestamp. Viewer could show
    side-by-side panels keyed by subagent ID. No format change needed, but
    the viewer needs to handle this gracefully.
-6. **Token usage / cost tracking** — Display per-session and per-turn costs.
-   Requires `token_usage` and `model` fields on Response entries (see TODO).
+6. ~~**Token usage / cost tracking**~~ — Done. `token_usage` and `model` fields added to Response entries.
 
 ---
 
