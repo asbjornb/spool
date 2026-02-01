@@ -275,6 +275,17 @@ pub struct RedactionInfo {
     pub count: usize,
 }
 
+/// Token usage information for an API response
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct TokenUsage {
+    pub input_tokens: u64,
+    pub output_tokens: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cache_read_tokens: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cache_creation_tokens: Option<u64>,
+}
+
 /// Agent response entry
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ResponseEntry {
@@ -285,6 +296,10 @@ pub struct ResponseEntry {
     pub truncated: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub original_bytes: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token_usage: Option<TokenUsage>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub subagent_id: Option<EntryId>,
     #[serde(flatten)]

@@ -19,7 +19,7 @@ use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use spool_format::{
     Entry, EntryId, PromptEntry, ResponseEntry, SessionEntry, SubagentEndEntry, SubagentStartEntry,
-    SubagentStatus, ThinkingEntry, ToolCallEntry, ToolOutput, ToolResultEntry,
+    SubagentStatus, ThinkingEntry, TokenUsage, ToolCallEntry, ToolOutput, ToolResultEntry,
 };
 use std::collections::HashMap;
 use std::fs;
@@ -60,7 +60,8 @@ pub fn find_sessions() -> Result<Vec<SessionInfo>> {
 
             // Only .jsonl files
             if file_path.extension().map(|e| e == "jsonl").unwrap_or(false) {
-                // Skip subagent files (agent-*.jsonl)
+                // Skip subagent files (agent-*.jsonl). This also covers
+                // prompt-suggestion files (agent-aprompt_suggestion-*.jsonl).
                 let filename = file_path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
                 if filename.starts_with("agent-") {
                     continue;
@@ -280,9 +281,23 @@ struct RawApiMessage {
     #[serde(default)]
     content: Option<Vec<RawContentBlock>>,
     #[serde(default)]
-    usage: Option<serde_json::Value>,
+    usage: Option<RawUsage>,
     #[serde(default)]
     stop_reason: Option<String>,
+}
+
+/// Token usage from the Anthropic API response.
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)]
+struct RawUsage {
+    #[serde(default)]
+    input_tokens: Option<u64>,
+    #[serde(default)]
+    output_tokens: Option<u64>,
+    #[serde(default)]
+    cache_read_input_tokens: Option<u64>,
+    #[serde(default)]
+    cache_creation_input_tokens: Option<u64>,
 }
 
 /// User message content can be a string (prompt) or array (tool results).
@@ -538,17 +553,42 @@ fn convert_raw_lines(raw_lines: &[RawLine], info: &SessionInfo) -> Result<spool_
                 let ts = compute_relative_ts(&a.timestamp, &session_start);
 
                 if let Some(ref msg) = a.message {
+                    // Extract model and token_usage once per message.
+                    // Attach to the first ResponseEntry to avoid double-counting.
+                    let msg_model = msg.model.clone();
+                    let msg_token_usage = msg.usage.as_ref().and_then(|u| {
+                        // Require at least input or output tokens to be present
+                        match (u.input_tokens, u.output_tokens) {
+                            (Some(inp), Some(out)) => Some(TokenUsage {
+                                input_tokens: inp,
+                                output_tokens: out,
+                                cache_read_tokens: u.cache_read_input_tokens,
+                                cache_creation_tokens: u.cache_creation_input_tokens,
+                            }),
+                            _ => None,
+                        }
+                    });
+                    let mut first_response_emitted = false;
+
                     if let Some(ref blocks) = msg.content {
                         for block in blocks {
                             match block {
                                 RawContentBlock::Text { text } => {
                                     if !text.is_empty() {
+                                        let (model, token_usage) = if !first_response_emitted {
+                                            first_response_emitted = true;
+                                            (msg_model.clone(), msg_token_usage.clone())
+                                        } else {
+                                            (None, None)
+                                        };
                                         entries.push(Entry::Response(ResponseEntry {
                                             id: Uuid::new_v7(uuid::Timestamp::now(uuid::NoContext)),
                                             ts,
                                             content: text.clone(),
                                             truncated: None,
                                             original_bytes: None,
+                                            model,
+                                            token_usage,
                                             subagent_id: None,
                                             extra: HashMap::new(),
                                         }));
@@ -881,5 +921,82 @@ mod tests {
         // The '→' starts at byte 56 and ends at 59. Truncating at 57 would be mid-char.
         // The fix should walk back to 56.
         assert!(result.is_char_boundary(result.len() - 3)); // before "..."
+    }
+
+    #[test]
+    fn test_model_and_token_usage_extraction() {
+        let lines = vec![
+            RawLine::User(RawUserLine {
+                message: Some(RawMessage {
+                    role: Some("user".to_string()),
+                    content: Some(RawContent::Text("Hello".to_string())),
+                }),
+                timestamp: Some("2026-01-01T00:00:00Z".to_string()),
+                uuid: None,
+                is_meta: false,
+                tool_use_result: None,
+            }),
+            RawLine::Assistant(RawAssistantLine {
+                message: Some(RawApiMessage {
+                    model: Some("claude-sonnet-4-20250514".to_string()),
+                    content: Some(vec![
+                        RawContentBlock::Text {
+                            text: "First block".to_string(),
+                        },
+                        RawContentBlock::Text {
+                            text: "Second block".to_string(),
+                        },
+                    ]),
+                    usage: Some(RawUsage {
+                        input_tokens: Some(100),
+                        output_tokens: Some(50),
+                        cache_read_input_tokens: Some(80),
+                        cache_creation_input_tokens: None,
+                    }),
+                    stop_reason: Some("end_turn".to_string()),
+                }),
+                timestamp: Some("2026-01-01T00:00:05Z".to_string()),
+                uuid: None,
+            }),
+        ];
+
+        let info = SessionInfo {
+            path: PathBuf::from("/tmp/test.jsonl"),
+            agent: AgentType::ClaudeCode,
+            created_at: Some("2026-01-01T00:00:00Z".parse().unwrap()),
+            modified_at: None,
+            title: None,
+            project_dir: None,
+            message_count: None,
+        };
+
+        let spool = convert_raw_lines(&lines, &info).unwrap();
+
+        // Find all response entries
+        let responses: Vec<&spool_format::ResponseEntry> = spool
+            .entries
+            .iter()
+            .filter_map(|e| match e {
+                Entry::Response(r) => Some(r),
+                _ => None,
+            })
+            .collect();
+
+        assert_eq!(responses.len(), 2);
+
+        // First response should have model and token_usage
+        assert_eq!(
+            responses[0].model.as_deref(),
+            Some("claude-sonnet-4-20250514")
+        );
+        let usage = responses[0].token_usage.as_ref().unwrap();
+        assert_eq!(usage.input_tokens, 100);
+        assert_eq!(usage.output_tokens, 50);
+        assert_eq!(usage.cache_read_tokens, Some(80));
+        assert_eq!(usage.cache_creation_tokens, None);
+
+        // Second response should NOT have model or token_usage (avoid double-counting)
+        assert!(responses[1].model.is_none());
+        assert!(responses[1].token_usage.is_none());
     }
 }

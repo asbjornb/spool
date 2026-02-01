@@ -299,6 +299,8 @@ mod tests {
             content: content.repeat(3),
             truncated: None,
             original_bytes: None,
+            model: None,
+            token_usage: None,
             subagent_id: None,
             extra: HashMap::new(),
         });

@@ -441,11 +441,24 @@ A response entry contains the agent's output to the user.
 |-------|------|-------------|
 | `truncated` | boolean | Whether content was truncated (default: `false`) |
 | `original_bytes` | integer | Original byte length before truncation |
+| `model` | string | Model identifier that generated this response (e.g., `"claude-sonnet-4-20250514"`) |
+| `token_usage` | object | Token usage for the API call that produced this response (see below) |
 | `subagent_id` | uuid | If within a subagent, references the `subagent_start` entry |
+
+**`token_usage` object**:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `input_tokens` | integer | Number of input tokens consumed |
+| `output_tokens` | integer | Number of output tokens generated |
+| `cache_read_tokens` | integer | *(optional)* Input tokens read from cache |
+| `cache_creation_tokens` | integer | *(optional)* Input tokens used to create cache |
+
+When a single API call produces multiple content blocks (and thus multiple response entries), `model` and `token_usage` SHOULD be attached to only the **first** response entry from that call, to avoid double-counting.
 
 **Example**:
 ```json
-{"id":"018d5f2c-8a3b-7def-0001-000000000005","ts":8000,"type":"response","content":"I found a SQL injection vulnerability in auth.py on line 47..."}
+{"id":"018d5f2c-8a3b-7def-0001-000000000005","ts":8000,"type":"response","content":"I found a SQL injection vulnerability in auth.py on line 47...","model":"claude-sonnet-4-20250514","token_usage":{"input_tokens":1200,"output_tokens":350}}
 ```
 
 ### 6.7 Error (`error`)
