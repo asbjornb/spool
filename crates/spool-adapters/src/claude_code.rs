@@ -18,8 +18,8 @@ use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use spool_format::{
-    Entry, EntryId, PromptEntry, ResponseEntry, SessionEntry, ThinkingEntry, ToolCallEntry,
-    ToolOutput, ToolResultEntry,
+    Entry, EntryId, PromptEntry, ResponseEntry, SessionEntry, SubagentEndEntry,
+    SubagentStartEntry, SubagentStatus, ThinkingEntry, ToolCallEntry, ToolOutput, ToolResultEntry,
 };
 use std::collections::HashMap;
 use std::fs;
@@ -344,6 +344,8 @@ fn convert_raw_lines(raw_lines: &[RawLine], info: &SessionInfo) -> Result<spool_
 
     // Track tool call IDs: Claude's tool_use id -> our spool EntryId
     let mut tool_id_map: HashMap<String, EntryId> = HashMap::new();
+    // Track Task tool calls: Claude's tool_use id -> SubagentStart EntryId
+    let mut task_subagent_map: HashMap<String, EntryId> = HashMap::new();
 
     // Parse timestamps to compute relative ms
     let mut first_timestamp: Option<DateTime<Utc>> = None;
@@ -468,6 +470,10 @@ fn convert_raw_lines(raw_lines: &[RawLine], info: &SessionInfo) -> Result<spool_
                                     let is_error = block.is_error.unwrap_or(false);
                                     let content_text = extract_tool_result_text(&block.content);
 
+                                    // Check if this tool result corresponds to a Task subagent
+                                    let subagent_start_id =
+                                        task_subagent_map.get(tool_use_id).copied();
+
                                     let entry = if is_error {
                                         ToolResultEntry {
                                             id: Uuid::new_v7(uuid::Timestamp::now(uuid::NoContext)),
@@ -477,7 +483,7 @@ fn convert_raw_lines(raw_lines: &[RawLine], info: &SessionInfo) -> Result<spool_
                                             error: Some(content_text),
                                             truncated: None,
                                             original_bytes: None,
-                                            subagent_id: None,
+                                            subagent_id: subagent_start_id,
                                             redacted: None,
                                             extra: HashMap::new(),
                                         }
@@ -490,12 +496,31 @@ fn convert_raw_lines(raw_lines: &[RawLine], info: &SessionInfo) -> Result<spool_
                                             error: None,
                                             truncated: None,
                                             original_bytes: None,
-                                            subagent_id: None,
+                                            subagent_id: subagent_start_id,
                                             redacted: None,
                                             extra: HashMap::new(),
                                         }
                                     };
                                     entries.push(Entry::ToolResult(entry));
+
+                                    // Emit SubagentEnd after the ToolResult for Task calls
+                                    if let Some(start_id) = subagent_start_id {
+                                        let status = if is_error {
+                                            Some(SubagentStatus::Failed)
+                                        } else {
+                                            Some(SubagentStatus::Completed)
+                                        };
+                                        entries.push(Entry::SubagentEnd(SubagentEndEntry {
+                                            id: Uuid::new_v7(
+                                                uuid::Timestamp::now(uuid::NoContext),
+                                            ),
+                                            ts,
+                                            start_id,
+                                            summary: None,
+                                            status,
+                                            extra: HashMap::new(),
+                                        }));
+                                    }
                                 }
                             }
                         }
@@ -542,12 +567,41 @@ fn convert_raw_lines(raw_lines: &[RawLine], info: &SessionInfo) -> Result<spool_
                                         Uuid::new_v7(uuid::Timestamp::now(uuid::NoContext));
                                     tool_id_map.insert(id.clone(), entry_id);
 
+                                    // For Task tool calls, emit a SubagentStart entry
+                                    let subagent_id = if name == "Task" {
+                                        let subagent_type = input
+                                            .get("subagent_type")
+                                            .and_then(|v| v.as_str())
+                                            .unwrap_or("unknown")
+                                            .to_string();
+                                        let description = input
+                                            .get("description")
+                                            .and_then(|v| v.as_str())
+                                            .map(|s| s.to_string());
+
+                                        let start_id =
+                                            Uuid::new_v7(uuid::Timestamp::now(uuid::NoContext));
+                                        entries.push(Entry::SubagentStart(SubagentStartEntry {
+                                            id: start_id,
+                                            ts,
+                                            agent: subagent_type,
+                                            context: description,
+                                            parent_subagent_id: None,
+                                            extra: HashMap::new(),
+                                        }));
+
+                                        task_subagent_map.insert(id.clone(), start_id);
+                                        Some(start_id)
+                                    } else {
+                                        None
+                                    };
+
                                     entries.push(Entry::ToolCall(ToolCallEntry {
                                         id: entry_id,
                                         ts,
                                         tool: name.clone(),
                                         input: input.clone(),
-                                        subagent_id: None,
+                                        subagent_id,
                                         extra: HashMap::new(),
                                     }));
                                 }

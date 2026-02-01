@@ -198,6 +198,17 @@ fn draw_preview(f: &mut Frame, area: Rect, app: &App) {
             }
             Entry::ToolCall(tc) => {
                 let input_preview = format_tool_input(&tc.input, area.width as usize - 12);
+                let tool_display = if tc.tool == "Task" {
+                    if let Some(subagent_type) =
+                        tc.input.get("subagent_type").and_then(|v| v.as_str())
+                    {
+                        format!("Task ({})", subagent_type)
+                    } else {
+                        tc.tool.clone()
+                    }
+                } else {
+                    tc.tool.clone()
+                };
                 lines.push(Line::from(vec![
                     Span::styled(
                         "TOOL: ",
@@ -205,7 +216,7 @@ fn draw_preview(f: &mut Frame, area: Rect, app: &App) {
                             .fg(Color::Blue)
                             .add_modifier(Modifier::BOLD),
                     ),
-                    Span::styled(tc.tool.clone(), Style::default().fg(Color::Blue)),
+                    Span::styled(tool_display, Style::default().fg(Color::Blue)),
                 ]));
                 lines.push(Line::from(format!("  {}", input_preview)));
                 lines.push(Line::from(""));

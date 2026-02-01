@@ -60,7 +60,17 @@ pub fn print_entry(entry: &Entry) {
             println!();
         }
         Entry::ToolCall(tc) => {
-            println!("┌─ TOOL: {} ─────────────────────────────", tc.tool);
+            let tool_display = if tc.tool == "Task" {
+                if let Some(subagent_type) = tc.input.get("subagent_type").and_then(|v| v.as_str())
+                {
+                    format!("Task ({})", subagent_type)
+                } else {
+                    tc.tool.clone()
+                }
+            } else {
+                tc.tool.clone()
+            };
+            println!("┌─ TOOL: {} ─────────────────────────────", tool_display);
             println!(
                 "│ Input: {}",
                 serde_json::to_string(&tc.input).unwrap_or_default()
