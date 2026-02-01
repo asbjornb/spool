@@ -1,8 +1,10 @@
 //! View command - Display a session file.
 
-use anyhow::{Context, Result};
-use spool_format::{Entry, SpoolFile};
+use anyhow::Result;
+use spool_format::Entry;
 use std::path::Path;
+
+use super::agent::load_spool_or_log;
 
 /// Truncate a string to at most `max_bytes` bytes at a char boundary.
 fn truncate_str(s: &str, max_bytes: usize) -> &str {
@@ -17,7 +19,7 @@ fn truncate_str(s: &str, max_bytes: usize) -> &str {
 }
 
 pub fn run(path: &Path) -> Result<()> {
-    let file = SpoolFile::from_path(path).with_context(|| format!("Failed to read: {:?}", path))?;
+    let file = load_spool_or_log(path)?;
 
     println!(
         "📼 Session: {}",

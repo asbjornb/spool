@@ -1,11 +1,12 @@
 //! Info command - Show information about a session.
 
-use anyhow::{Context, Result};
-use spool_format::SpoolFile;
+use anyhow::Result;
 use std::path::Path;
 
+use super::agent::load_spool_or_log;
+
 pub fn run(path: &Path) -> Result<()> {
-    let file = SpoolFile::from_path(path).with_context(|| format!("Failed to read: {:?}", path))?;
+    let file = load_spool_or_log(path)?;
 
     println!("📋 Session Information\n");
     println!("File: {:?}", path);

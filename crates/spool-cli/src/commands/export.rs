@@ -1,36 +1,17 @@
 //! Export command - Convert and export sessions to .spool format.
 
 use anyhow::{Context, Result};
-use spool_adapters::{claude_code, codex, AgentType};
-use spool_format::{SecretDetector, SpoolFile};
-use std::fs::File;
-use std::io::{BufRead, BufReader};
+use spool_format::SecretDetector;
 use std::path::Path;
+
+use super::agent::load_spool_or_log;
 
 pub fn run(source: &Path, output: Option<&Path>, trim: Option<&str>, redact: bool) -> Result<()> {
     println!("📤 Exporting session...");
     println!("   Source: {:?}", source);
 
     // Determine if source is already a .spool file or an agent log
-    let mut file = if source.extension().map(|e| e == "spool").unwrap_or(false) {
-        SpoolFile::from_path(source)?
-    } else {
-        let agent = detect_agent_from_log(source)?;
-        let session_info = spool_adapters::SessionInfo {
-            path: source.to_path_buf(),
-            agent,
-            created_at: None,
-            modified_at: None,
-            title: None,
-            project_dir: None,
-            message_count: None,
-        };
-        match agent {
-            AgentType::ClaudeCode => claude_code::convert(&session_info)?,
-            AgentType::Codex => codex::convert(&session_info)?,
-            _ => anyhow::bail!("Unsupported agent log: {:?}", source),
-        }
-    };
+    let mut file = load_spool_or_log(source)?;
 
     // Apply trimming if specified
     if let Some(trim_range) = trim {
@@ -93,30 +74,6 @@ pub fn run(source: &Path, output: Option<&Path>, trim: Option<&str>, redact: boo
     println!("   Entries: {}", file.entries.len());
 
     Ok(())
-}
-
-fn detect_agent_from_log(path: &Path) -> Result<AgentType> {
-    let file = File::open(path).with_context(|| format!("Failed to open {:?}", path))?;
-    let mut reader = BufReader::new(file);
-    let mut line = String::new();
-    loop {
-        line.clear();
-        if reader.read_line(&mut line)? == 0 {
-            break;
-        }
-        if line.trim().is_empty() {
-            continue;
-        }
-        let value: serde_json::Value = serde_json::from_str(&line)
-            .with_context(|| format!("Failed to parse JSON line in {:?}", path))?;
-        let kind = value.get("type").and_then(|v| v.as_str()).unwrap_or("");
-        return Ok(match kind {
-            "session_meta" => AgentType::Codex,
-            "user" | "assistant" | "progress" | "summary" | "system" => AgentType::ClaudeCode,
-            _ => AgentType::Unknown,
-        });
-    }
-    Ok(AgentType::Unknown)
 }
 
 fn parse_trim_range(range: &str) -> Result<(u64, u64)> {
