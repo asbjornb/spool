@@ -69,12 +69,12 @@ Not all need to happen now, but they should be tracked.
   - Register in lib.rs
   - Update browse to search both Claude Code and Codex
 
-- [ ] **Add more example .spool files** (spec/examples/)
+- [x] **Add more example .spool files** (spec/examples/)
   - debugging-session.spool -- multi-step debug with iteration
   - refactoring-session.spool -- multi-file changes
   - long-session-trimmed.spool -- shows trim markers
 
-- [ ] **Generate JSON Schema** (spec/schema/)
+- [x] **Generate JSON Schema** (spec/schema/)
   - Schema for each entry type, usable by editors and other implementations
 
 ### Blocked by TUI browser

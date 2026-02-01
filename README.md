@@ -111,7 +111,7 @@ crates/
 spec/
   SPEC.md            Format specification (RFC-style, ~1000 lines)
   examples/          Example .spool files
-  schema/            JSON Schema (planned)
+  schema/            JSON Schema for the format
 docs/
   DESIGN.md          Product vision and philosophy
   ROADMAP.md         Development phases

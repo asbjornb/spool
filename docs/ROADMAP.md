@@ -64,8 +64,8 @@ This document outlines the phased development approach for Spool.
 
 - [ ] Interactive redaction review UI (confirm/dismiss detections)
 - [x] Codex adapter
-- [ ] More example .spool files
-- [ ] JSON Schema for the format
+- [x] More example .spool files
+- [x] JSON Schema for the format
 - [ ] Format improvements: `files_modified`, `token_usage`, `model` on entries
 - [ ] Idle gap compression in player (compress user think-time to max 2s)
 - [ ] Release v0.1.0
