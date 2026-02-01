@@ -69,7 +69,7 @@ Spool is different: "Oh that was cool, let me share it" → open picker → brow
 ### 1. Start with existing logs
 
 Agents already store logs. Don't make users change their workflow. Find the logs where they are:
-- Claude Code: `~/.claude/projects/*/sessions/*.json`
+- Claude Code: `~/.claude/projects/*/*.jsonl`
 - Codex: `~/.codex/logs/` (TBD)
 
 ### 2. Destructive redaction
