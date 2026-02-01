@@ -6,7 +6,7 @@ This document outlines the phased development approach for Spool.
 
 | Phase | Focus | Timeline | Status |
 |-------|-------|----------|--------|
-| 1 | **Watch** — Local TUI tool | 6 weeks | 🔨 In Progress |
+| 1 | **Watch** — Local TUI tool | 6 weeks | 🔨 Near Complete |
 | 2 | **Share** — unspool.dev + embeds | 6-8 weeks | 📋 Planned |
 | 3 | **Shape** — Context editing | 6-8 weeks | 📋 Planned |
 
@@ -35,30 +35,32 @@ This document outlines the phased development approach for Spool.
 
 ### Week 3-4: TUI Browser
 
-- [ ] Basic TUI framework (ratatui)
-- [ ] Session list view
-  - [ ] Sort by date, filter by project
-  - [ ] Preview on hover/select
-- [ ] Session detail view
-  - [ ] Entry list with types
-  - [ ] Expand/collapse thinking blocks
-  - [ ] Syntax highlighting for code
-- [ ] Keyboard navigation
-  - [ ] vim-style (`j/k`, `/` search)
-  - [ ] Arrow keys
+- [x] Basic TUI framework (ratatui)
+- [x] Session list view
+  - [x] Sort by date, filter by project
+  - [x] Preview on hover/select
+- [x] Session detail view
+  - [x] Entry list with types
+  - [x] Expand/collapse thinking blocks
+  - [x] Syntax highlighting for code
+- [x] Keyboard navigation
+  - [x] vim-style (`j/k`, `/` search)
+  - [x] Arrow keys
 
 ### Week 5: Playback & Editing
 
-- [ ] Playback mode
-  - [ ] Step through entries
-  - [ ] Thinking compression (show progress bar, skip duration)
-  - [ ] Adjustable speed (1x, 2x, 4x)
-- [ ] Interactive trim UI
-  - [ ] Mark start/end points in TUI
-  - [ ] Preview trimmed result
-- [ ] Annotation support
-  - [ ] Add annotations to entries from TUI
-  - [ ] Edit/delete annotations
+- [x] Playback mode
+  - [x] Step through entries
+  - [x] Thinking compression (show progress bar, skip duration)
+  - [x] Adjustable speed (0.25x to 16x)
+- [x] Interactive trim UI
+  - [x] Mark start/end points in TUI (`[`/`]`)
+  - [x] Preview trimmed result
+  - [x] Export selection (`x`)
+- [x] Annotation support
+  - [x] Add annotations to entries from TUI (`a`)
+  - [x] Style selection (highlight/success/warning/info)
+  - [x] Annotations persisted in exported .spool file
 
 ### Week 6: Export & Polish
 
@@ -66,8 +68,8 @@ This document outlines the phased development approach for Spool.
 - [x] Codex adapter
 - [x] More example .spool files
 - [x] JSON Schema for the format
-- [ ] Format improvements: `files_modified`, `token_usage`, `model` on entries
-- [ ] Idle gap compression in player (compress user think-time to max 2s)
+- [x] Format improvements: `files_modified`, `token_usage`, `model` on entries
+- [x] Idle gap compression in player (compress user think-time to max 2s)
 - [ ] Release v0.1.0
 
 ### Deliverables
@@ -231,10 +233,10 @@ Each crate is independently versioned and can be used as a library.
 ## Success Criteria
 
 ### Phase 1 ✓ if:
-- Can browse Claude Code sessions
-- Can replay with thinking compression
-- Can trim and export `.spool` files
-- Redaction works reliably
+- ~~Can browse Claude Code sessions~~ ✅
+- ~~Can replay with thinking compression~~ ✅
+- ~~Can trim and export `.spool` files~~ ✅
+- ~~Redaction works reliably~~ ✅ (interactive review UI remaining)
 
 ### Phase 2 ✓ if:
 - 100+ sessions published to unspool.dev
