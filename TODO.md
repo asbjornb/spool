@@ -92,7 +92,7 @@ Not all need to happen now, but they should be tracked.
   - Preview trimmed result
   - `x` to export selection
 
-- [ ] **Interactive annotations**
+- [x] **Interactive annotations**
   - `a` on any entry to add annotation
   - Text input, style selection (highlight/success/warning/info)
   - Annotations persisted in exported .spool file

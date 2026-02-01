@@ -17,10 +17,12 @@ use ratatui::{
     widgets::{Block, Borders, Gauge, Paragraph, Wrap},
     Frame,
 };
-use spool_format::{Entry, SpoolFile, ToolOutput};
+use spool_format::{AnnotationEntry, AnnotationStyle, Entry, SpoolFile, ToolOutput};
+use std::collections::HashMap;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
+use uuid::Uuid;
 
 use super::agent::load_spool_or_log;
 /// Maximum gap (ms) before a Prompt entry (user think-time).
@@ -77,7 +79,25 @@ struct PlayApp {
     /// Status message for UI feedback.
     status_message: Option<String>,
 
+    // Annotation state
+    annotation_draft: Option<AnnotationDraft>,
+
     should_quit: bool,
+}
+
+#[derive(Clone, Copy)]
+enum AnnotationStage {
+    Text,
+    Style,
+}
+
+struct AnnotationDraft {
+    target_index: usize,
+    target_id: spool_format::EntryId,
+    target_ts: u64,
+    buffer: String,
+    style: Option<AnnotationStyle>,
+    stage: AnnotationStage,
 }
 
 impl PlayApp {
@@ -120,6 +140,7 @@ impl PlayApp {
             trim_start_ms: None,
             trim_end_ms: None,
             status_message: None,
+            annotation_draft: None,
             should_quit: false,
         }
     }
@@ -205,6 +226,138 @@ impl PlayApp {
             }
         }
         None
+    }
+
+    fn current_entry_info(&self) -> Option<(usize, spool_format::EntryId, u64)> {
+        if self.visible_count == 0 {
+            return None;
+        }
+        for idx in (0..self.visible_count).rev() {
+            let te = self.timeline.get(idx)?;
+            let entry = self.spool_file.entries.get(te.entry_index)?;
+            if let (Some(id), Some(ts)) = (entry.id(), entry.timestamp()) {
+                return Some((te.entry_index, *id, ts));
+            }
+        }
+        None
+    }
+
+    fn start_annotation(&mut self) {
+        match self.current_entry_info() {
+            Some((target_index, target_id, target_ts)) => {
+                self.annotation_draft = Some(AnnotationDraft {
+                    target_index,
+                    target_id,
+                    target_ts,
+                    buffer: String::new(),
+                    style: None,
+                    stage: AnnotationStage::Text,
+                });
+                self.status_message = Some("Annotation: enter text".to_string());
+            }
+            None => {
+                self.status_message = Some("Cannot annotate yet".to_string());
+            }
+        }
+    }
+
+    fn cancel_annotation(&mut self) {
+        self.annotation_draft = None;
+        self.status_message = Some("Annotation cancelled".to_string());
+    }
+
+    fn handle_annotation_key(&mut self, key: KeyCode) {
+        let Some(draft) = self.annotation_draft.as_mut() else {
+            return;
+        };
+
+        match draft.stage {
+            AnnotationStage::Text => match key {
+                KeyCode::Esc => self.cancel_annotation(),
+                KeyCode::Enter => {
+                    if draft.buffer.trim().is_empty() {
+                        self.status_message = Some("Enter annotation text".to_string());
+                    } else {
+                        draft.stage = AnnotationStage::Style;
+                        self.status_message = Some("Annotation: select style".to_string());
+                    }
+                }
+                KeyCode::Backspace => {
+                    draft.buffer.pop();
+                }
+                KeyCode::Char(ch) => {
+                    draft.buffer.push(ch);
+                }
+                _ => {}
+            },
+            AnnotationStage::Style => match key {
+                KeyCode::Esc => self.cancel_annotation(),
+                KeyCode::Enter => {
+                    if let Some(style) = draft.style.clone() {
+                        let content = draft.buffer.trim().to_string();
+                        let target_index = draft.target_index;
+                        let target_id = draft.target_id;
+                        let target_ts = draft.target_ts;
+                        self.add_annotation(target_index, target_id, target_ts, content, style);
+                        self.annotation_draft = None;
+                        self.status_message = Some("Annotation added".to_string());
+                    } else {
+                        self.status_message = Some("Select a style".to_string());
+                    }
+                }
+                KeyCode::Char(ch) => {
+                    if let Some(style) = annotation_style_from_key(ch) {
+                        draft.style = Some(style);
+                    }
+                }
+                _ => {}
+            },
+        }
+    }
+
+    fn add_annotation(
+        &mut self,
+        target_index: usize,
+        target_id: spool_format::EntryId,
+        target_ts: u64,
+        content: String,
+        style: AnnotationStyle,
+    ) {
+        let annotation = AnnotationEntry {
+            id: Uuid::new_v4(),
+            ts: target_ts,
+            target_id,
+            content,
+            author: None,
+            style: Some(style),
+            created_at: Some(chrono::Utc::now()),
+            extra: HashMap::new(),
+        };
+
+        let insert_at = (target_index + 1).min(self.spool_file.entries.len());
+        self.spool_file
+            .entries
+            .insert(insert_at, Entry::Annotation(annotation));
+        self.update_session_entry_count();
+        self.rebuild_timeline();
+    }
+
+    fn update_session_entry_count(&mut self) {
+        let count = self.spool_file.entries.len();
+        self.spool_file.session.entry_count = Some(count);
+        if let Some(Entry::Session(ref mut session)) = self.spool_file.entries.get_mut(0) {
+            session.entry_count = Some(count);
+        }
+    }
+
+    fn rebuild_timeline(&mut self) {
+        self.timeline = build_timeline(&self.spool_file.entries);
+        self.total_duration_ms = self.timeline.last().map(|t| t.playback_ms).unwrap_or(0);
+        self.visible_count = self
+            .timeline
+            .iter()
+            .take_while(|t| t.playback_ms <= self.playback_elapsed_ms)
+            .count();
     }
 
     fn mark_trim_start(&mut self) {
@@ -462,6 +615,11 @@ fn run_loop(
                     continue;
                 }
 
+                if app.annotation_draft.is_some() {
+                    app.handle_annotation_key(key.code);
+                    continue;
+                }
+
                 match key.code {
                     KeyCode::Char('q') | KeyCode::Esc => {
                         app.should_quit = true;
@@ -478,6 +636,7 @@ fn run_loop(
                     KeyCode::Char('[') => app.mark_trim_start(),
                     KeyCode::Char(']') => app.mark_trim_end(),
                     KeyCode::Char('x') => app.export_trimmed(),
+                    KeyCode::Char('a') => app.start_annotation(),
                     _ => {}
                 }
             }
@@ -507,6 +666,9 @@ fn draw(f: &mut Frame, app: &mut PlayApp) {
     draw_entries(f, chunks[1], app);
     draw_progress_bar(f, chunks[2], app);
     draw_controls(f, chunks[3], app);
+    if app.annotation_draft.is_some() {
+        draw_annotation_modal(f, app);
+    }
 }
 
 fn draw_title_bar(f: &mut Frame, area: Rect, app: &PlayApp) {
@@ -629,7 +791,7 @@ fn draw_controls(f: &mut Frame, area: Rect, app: &PlayApp) {
     };
 
     let mut text = format!(
-        " {}  h/l:step  +/-:speed  j/k:scroll  g/G:start/end  [:start  ]:end  x:export  q:quit  {}",
+        " {}  h/l:step  +/-:speed  j/k:scroll  g/G:start/end  [:start  ]:end  x:export  a:annotate  q:quit  {}",
         play_key, trim_label
     );
     if let Some(ref status) = app.status_message {
@@ -895,6 +1057,88 @@ fn format_tool_input(input: &serde_json::Value, max_len: usize) -> String {
     }
 }
 
+fn draw_annotation_modal(f: &mut Frame, app: &PlayApp) {
+    let Some(ref draft) = app.annotation_draft else {
+        return;
+    };
+
+    let area = centered_rect(70, 40, f.area());
+    let block = Block::default()
+        .title("Annotation")
+        .borders(Borders::ALL)
+        .style(Style::default().bg(Color::Black).fg(Color::White));
+
+    let content = match draft.stage {
+        AnnotationStage::Text => {
+            let text = truncate_str(&draft.buffer, area.width.saturating_sub(4) as usize);
+            vec![
+                Line::from("Enter annotation text (Enter to continue, Esc to cancel)"),
+                Line::from(""),
+                Line::from(format!("Text: {}", text)),
+            ]
+        }
+        AnnotationStage::Style => {
+            let style_label = draft
+                .style
+                .as_ref()
+                .map(annotation_style_label)
+                .unwrap_or("none");
+            vec![
+                Line::from("Select style: 1/2/3/4/5 or h/c/p/w/s"),
+                Line::from("Enter to save, Esc to cancel"),
+                Line::from(""),
+                Line::from(format!("Style: {}", style_label)),
+            ]
+        }
+    };
+
+    let paragraph = Paragraph::new(content)
+        .block(block)
+        .wrap(Wrap { trim: true });
+    f.render_widget(paragraph, area);
+}
+
+fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage((100 - percent_y) / 2),
+            Constraint::Percentage(percent_y),
+            Constraint::Percentage((100 - percent_y) / 2),
+        ])
+        .split(r);
+    let horizontal = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage((100 - percent_x) / 2),
+            Constraint::Percentage(percent_x),
+            Constraint::Percentage((100 - percent_x) / 2),
+        ])
+        .split(popup_layout[1]);
+    horizontal[1]
+}
+
+fn annotation_style_from_key(ch: char) -> Option<AnnotationStyle> {
+    match ch {
+        '1' | 'h' | 'H' => Some(AnnotationStyle::Highlight),
+        '2' | 'c' | 'C' => Some(AnnotationStyle::Comment),
+        '3' | 'p' | 'P' => Some(AnnotationStyle::Pin),
+        '4' | 'w' | 'W' => Some(AnnotationStyle::Warning),
+        '5' | 's' | 'S' => Some(AnnotationStyle::Success),
+        _ => None,
+    }
+}
+
+fn annotation_style_label(style: &AnnotationStyle) -> &'static str {
+    match style {
+        AnnotationStyle::Highlight => "highlight",
+        AnnotationStyle::Comment => "comment",
+        AnnotationStyle::Pin => "pin",
+        AnnotationStyle::Warning => "warning",
+        AnnotationStyle::Success => "success",
+    }
+}
+
 fn next_trimmed_path(source: &Path) -> PathBuf {
     let parent = source.parent().unwrap_or_else(|| Path::new("."));
     let stem = source
@@ -984,6 +1228,17 @@ mod tests {
             model: None,
             token_usage: None,
             subagent_id: None,
+            extra: HashMap::new(),
+        })
+    }
+
+    fn make_prompt_with_id(ts: u64, id: Uuid, content: &str) -> Entry {
+        Entry::Prompt(PromptEntry {
+            id,
+            ts,
+            content: content.to_string(),
+            subagent_id: None,
+            attachments: None,
             extra: HashMap::new(),
         })
     }
@@ -1103,5 +1358,36 @@ mod tests {
         fs::write(&first, "x").unwrap();
         let second = next_trimmed_path(&source);
         assert_eq!(second, dir.join("session.trimmed-1.spool"));
+    }
+
+    #[test]
+    fn test_add_annotation_inserts_after_target() {
+        let session = match make_session_entry() {
+            Entry::Session(s) => s,
+            _ => unreachable!(),
+        };
+        let mut file = SpoolFile::new(session);
+        let prompt_id = Uuid::new_v4();
+        file.add_entry(make_prompt_with_id(1000, prompt_id, "hello"));
+        file.add_entry(make_response(2000, "ok"));
+
+        let mut app = PlayApp::new(file, PathBuf::from("session.spool"), 1.0);
+        app.add_annotation(
+            1,
+            prompt_id,
+            1000,
+            "note".to_string(),
+            AnnotationStyle::Comment,
+        );
+
+        assert_eq!(app.spool_file.entries.len(), 4);
+        match &app.spool_file.entries[2] {
+            Entry::Annotation(a) => {
+                assert_eq!(a.target_id, prompt_id);
+                assert_eq!(a.ts, 1000);
+                assert_eq!(a.content, "note");
+            }
+            _ => panic!("Expected annotation entry"),
+        }
     }
 }
