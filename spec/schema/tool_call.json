@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ToolCallEntry",
+  "description": "Tool call entry",
+  "type": "object",
+  "required": [
+    "id",
+    "input",
+    "tool",
+    "ts"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "input": true,
+    "subagent_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid"
+    },
+    "tool": {
+      "type": "string"
+    },
+    "ts": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    }
+  },
+  "additionalProperties": true
+}

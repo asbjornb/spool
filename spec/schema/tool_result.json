@@ -1,0 +1,166 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ToolResultEntry",
+  "description": "Tool result entry",
+  "type": "object",
+  "required": [
+    "call_id",
+    "id",
+    "ts"
+  ],
+  "properties": {
+    "_redacted": {
+      "description": "Inline redaction metadata",
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/definitions/RedactionInfo"
+      }
+    },
+    "call_id": {
+      "description": "References the tool_call entry",
+      "type": "string",
+      "format": "uuid"
+    },
+    "error": {
+      "description": "Error message (mutually exclusive with output)",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "original_bytes": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint",
+      "minimum": 0.0
+    },
+    "output": {
+      "description": "Tool output (mutually exclusive with error)",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ToolOutput"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "subagent_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid"
+    },
+    "truncated": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "ts": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    }
+  },
+  "additionalProperties": true,
+  "definitions": {
+    "BinaryContent": {
+      "description": "Binary content with base64 encoding",
+      "type": "object",
+      "required": [
+        "data",
+        "encoding",
+        "media_type",
+        "type"
+      ],
+      "properties": {
+        "data": {
+          "type": "string"
+        },
+        "encoding": {
+          "type": "string"
+        },
+        "filename": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "media_type": {
+          "type": "string"
+        },
+        "size_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "truncated": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "type": {
+          "type": "string"
+        }
+      }
+    },
+    "RedactionInfo": {
+      "description": "Inline redaction information",
+      "type": "object",
+      "required": [
+        "count",
+        "reason"
+      ],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "reason": {
+          "$ref": "#/definitions/RedactionReason"
+        }
+      }
+    },
+    "RedactionReason": {
+      "description": "Reason for redaction",
+      "type": "string",
+      "enum": [
+        "api_key",
+        "password",
+        "email",
+        "phone",
+        "path",
+        "ip_address",
+        "pii",
+        "custom"
+      ]
+    },
+    "ToolOutput": {
+      "description": "Tool output can be a string or binary data",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/definitions/BinaryContent"
+        }
+      ]
+    }
+  }
+}

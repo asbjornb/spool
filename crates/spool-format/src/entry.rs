@@ -4,9 +4,30 @@
 //! This module defines all entry types as specified in SPEC.md.
 
 use chrono::{DateTime, Utc};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
+
+mod schema {
+    use schemars::schema::{InstanceType, ObjectValidation, Schema, SchemaObject};
+    use schemars::SchemaGenerator;
+
+    pub fn any_value_schema(_gen: &mut SchemaGenerator) -> Schema {
+        Schema::Bool(true)
+    }
+
+    pub fn extras_schema(_gen: &mut SchemaGenerator) -> Schema {
+        Schema::Object(SchemaObject {
+            instance_type: Some(InstanceType::Object.into()),
+            object: Some(Box::new(ObjectValidation {
+                additional_properties: Some(Box::new(Schema::Bool(true))),
+                ..ObjectValidation::default()
+            })),
+            ..SchemaObject::default()
+        })
+    }
+}
 
 /// A unique identifier for entries.
 /// Should be UUID v7 (time-ordered) or v4 (random).
@@ -16,7 +37,7 @@ pub type EntryId = Uuid;
 pub type Timestamp = u64;
 
 /// An entry in a Spool file.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Entry {
     /// Session metadata (must be first entry)
@@ -43,6 +64,7 @@ pub enum Entry {
     RedactionMarker(RedactionMarkerEntry),
     /// Unknown entry type (for forward compatibility)
     #[serde(other)]
+    #[schemars(skip)]
     Unknown,
 }
 
@@ -85,7 +107,7 @@ impl Entry {
 }
 
 /// Session metadata entry. Must be the first entry in every Spool file.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 pub struct SessionEntry {
     /// Unique identifier
     pub id: EntryId,
@@ -138,11 +160,12 @@ pub struct SessionEntry {
 
     /// Extension fields (prefixed with x_)
     #[serde(flatten)]
+    #[schemars(schema_with = "schema::extras_schema")]
     pub extra: HashMap<String, serde_json::Value>,
 }
 
 /// Metadata about trimming
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 pub struct TrimmedMetadata {
     /// Duration of the original recording in milliseconds
     pub original_duration_ms: u64,
@@ -151,7 +174,7 @@ pub struct TrimmedMetadata {
 }
 
 /// How a session ended
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum SessionEndState {
     Completed,
@@ -162,7 +185,7 @@ pub enum SessionEndState {
 }
 
 /// User prompt entry
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 pub struct PromptEntry {
     pub id: EntryId,
     pub ts: Timestamp,
@@ -172,11 +195,12 @@ pub struct PromptEntry {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub attachments: Option<Vec<Attachment>>,
     #[serde(flatten)]
+    #[schemars(schema_with = "schema::extras_schema")]
     pub extra: HashMap<String, serde_json::Value>,
 }
 
 /// File attachment
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 pub struct Attachment {
     /// Must be "binary" for binary content
     #[serde(rename = "type")]
@@ -194,7 +218,7 @@ pub struct Attachment {
 }
 
 /// Agent thinking entry
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 pub struct ThinkingEntry {
     pub id: EntryId,
     pub ts: Timestamp,
@@ -208,24 +232,27 @@ pub struct ThinkingEntry {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub subagent_id: Option<EntryId>,
     #[serde(flatten)]
+    #[schemars(schema_with = "schema::extras_schema")]
     pub extra: HashMap<String, serde_json::Value>,
 }
 
 /// Tool call entry
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 pub struct ToolCallEntry {
     pub id: EntryId,
     pub ts: Timestamp,
     pub tool: String,
+    #[schemars(schema_with = "schema::any_value_schema")]
     pub input: serde_json::Value,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub subagent_id: Option<EntryId>,
     #[serde(flatten)]
+    #[schemars(schema_with = "schema::extras_schema")]
     pub extra: HashMap<String, serde_json::Value>,
 }
 
 /// Tool result entry
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 pub struct ToolResultEntry {
     pub id: EntryId,
     pub ts: Timestamp,
@@ -247,11 +274,12 @@ pub struct ToolResultEntry {
     #[serde(rename = "_redacted", skip_serializing_if = "Option::is_none")]
     pub redacted: Option<Vec<RedactionInfo>>,
     #[serde(flatten)]
+    #[schemars(schema_with = "schema::extras_schema")]
     pub extra: HashMap<String, serde_json::Value>,
 }
 
 /// Tool output can be a string or binary data
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 #[serde(untagged)]
 pub enum ToolOutput {
     Text(String),
@@ -259,7 +287,7 @@ pub enum ToolOutput {
 }
 
 /// Binary content with base64 encoding
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 pub struct BinaryContent {
     #[serde(rename = "type")]
     pub content_type: String, // "binary"
@@ -275,14 +303,14 @@ pub struct BinaryContent {
 }
 
 /// Inline redaction information
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 pub struct RedactionInfo {
     pub reason: RedactionReason,
     pub count: usize,
 }
 
 /// Token usage information for an API response
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 pub struct TokenUsage {
     pub input_tokens: u64,
     pub output_tokens: u64,
@@ -293,7 +321,7 @@ pub struct TokenUsage {
 }
 
 /// Agent response entry
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 pub struct ResponseEntry {
     pub id: EntryId,
     pub ts: Timestamp,
@@ -309,11 +337,12 @@ pub struct ResponseEntry {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub subagent_id: Option<EntryId>,
     #[serde(flatten)]
+    #[schemars(schema_with = "schema::extras_schema")]
     pub extra: HashMap<String, serde_json::Value>,
 }
 
 /// Error entry
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 pub struct ErrorEntry {
     pub id: EntryId,
     pub ts: Timestamp,
@@ -322,15 +351,17 @@ pub struct ErrorEntry {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub recoverable: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schemars(schema_with = "schema::any_value_schema")]
     pub details: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub subagent_id: Option<EntryId>,
     #[serde(flatten)]
+    #[schemars(schema_with = "schema::extras_schema")]
     pub extra: HashMap<String, serde_json::Value>,
 }
 
 /// Standard error codes
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ErrorCode {
     RateLimit,
@@ -365,7 +396,7 @@ impl std::fmt::Display for ErrorCode {
 }
 
 /// Subagent start entry
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 pub struct SubagentStartEntry {
     pub id: EntryId,
     pub ts: Timestamp,
@@ -375,11 +406,12 @@ pub struct SubagentStartEntry {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parent_subagent_id: Option<EntryId>,
     #[serde(flatten)]
+    #[schemars(schema_with = "schema::extras_schema")]
     pub extra: HashMap<String, serde_json::Value>,
 }
 
 /// Subagent end entry
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 pub struct SubagentEndEntry {
     pub id: EntryId,
     pub ts: Timestamp,
@@ -389,11 +421,12 @@ pub struct SubagentEndEntry {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<SubagentStatus>,
     #[serde(flatten)]
+    #[schemars(schema_with = "schema::extras_schema")]
     pub extra: HashMap<String, serde_json::Value>,
 }
 
 /// Subagent completion status
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum SubagentStatus {
     Completed,
@@ -402,7 +435,7 @@ pub enum SubagentStatus {
 }
 
 /// Annotation entry
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 pub struct AnnotationEntry {
     pub id: EntryId,
     pub ts: Timestamp,
@@ -415,11 +448,12 @@ pub struct AnnotationEntry {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<DateTime<Utc>>,
     #[serde(flatten)]
+    #[schemars(schema_with = "schema::extras_schema")]
     pub extra: HashMap<String, serde_json::Value>,
 }
 
 /// Annotation display style
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum AnnotationStyle {
     Highlight,
@@ -430,7 +464,7 @@ pub enum AnnotationStyle {
 }
 
 /// Redaction marker entry
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 pub struct RedactionMarkerEntry {
     pub id: EntryId,
     pub ts: Timestamp,
@@ -442,11 +476,12 @@ pub struct RedactionMarkerEntry {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub inline: Option<bool>,
     #[serde(flatten)]
+    #[schemars(schema_with = "schema::extras_schema")]
     pub extra: HashMap<String, serde_json::Value>,
 }
 
 /// Reason for redaction
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum RedactionReason {
     ApiKey,

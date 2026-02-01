@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PromptEntry",
+  "description": "User prompt entry",
+  "type": "object",
+  "required": [
+    "content",
+    "id",
+    "ts"
+  ],
+  "properties": {
+    "attachments": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/definitions/Attachment"
+      }
+    },
+    "content": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "subagent_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid"
+    },
+    "ts": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    }
+  },
+  "additionalProperties": true,
+  "definitions": {
+    "Attachment": {
+      "description": "File attachment",
+      "type": "object",
+      "required": [
+        "data",
+        "encoding",
+        "media_type",
+        "type"
+      ],
+      "properties": {
+        "data": {
+          "description": "Base64-encoded content",
+          "type": "string"
+        },
+        "encoding": {
+          "description": "Encoding (must be \"base64\")",
+          "type": "string"
+        },
+        "filename": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "media_type": {
+          "description": "MIME type of the content",
+          "type": "string"
+        },
+        "size_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "type": {
+          "description": "Must be \"binary\" for binary content",
+          "type": "string"
+        }
+      }
+    }
+  }
+}

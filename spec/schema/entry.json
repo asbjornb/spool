@@ -1,0 +1,973 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Entry",
+  "description": "An entry in a Spool file.",
+  "oneOf": [
+    {
+      "description": "Session metadata (must be first entry)",
+      "type": "object",
+      "required": [
+        "agent",
+        "id",
+        "recorded_at",
+        "ts",
+        "type",
+        "version"
+      ],
+      "properties": {
+        "agent": {
+          "description": "Agent identifier (e.g., \"claude-code\", \"codex\")",
+          "type": "string"
+        },
+        "agent_version": {
+          "description": "Version of the agent software",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "author": {
+          "description": "Creator's name or handle",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "duration_ms": {
+          "description": "Total session duration in milliseconds",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "ended": {
+          "description": "How the session ended",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/SessionEndState"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "entry_count": {
+          "description": "Total number of entries",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "files_modified": {
+          "description": "File paths modified during the session",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "first_prompt": {
+          "description": "First user prompt text (truncated), useful for browsing/indexing",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "description": "Unique identifier",
+          "type": "string",
+          "format": "uuid"
+        },
+        "recorded_at": {
+          "description": "Wall-clock time when recording started",
+          "type": "string",
+          "format": "date-time"
+        },
+        "schema_url": {
+          "description": "URL to the specification version",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tags": {
+          "description": "Searchable tags",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "title": {
+          "description": "Human-readable session title",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tools_used": {
+          "description": "Tool names invoked during session",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "trimmed": {
+          "description": "Trimming metadata if file was trimmed",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/TrimmedMetadata"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ts": {
+          "description": "Timestamp (must be 0)",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "session"
+          ]
+        },
+        "version": {
+          "description": "Format version (e.g., \"1.0\")",
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    {
+      "description": "User prompt to the agent",
+      "type": "object",
+      "required": [
+        "content",
+        "id",
+        "ts",
+        "type"
+      ],
+      "properties": {
+        "attachments": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/Attachment"
+          }
+        },
+        "content": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "subagent_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uuid"
+        },
+        "ts": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "prompt"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    {
+      "description": "Agent's internal reasoning",
+      "type": "object",
+      "required": [
+        "content",
+        "id",
+        "ts",
+        "type"
+      ],
+      "properties": {
+        "collapsed": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "content": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "original_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "subagent_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uuid"
+        },
+        "truncated": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "ts": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "thinking"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    {
+      "description": "Tool invocation by the agent",
+      "type": "object",
+      "required": [
+        "id",
+        "input",
+        "tool",
+        "ts",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "input": true,
+        "subagent_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uuid"
+        },
+        "tool": {
+          "type": "string"
+        },
+        "ts": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "tool_call"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    {
+      "description": "Result from a tool invocation",
+      "type": "object",
+      "required": [
+        "call_id",
+        "id",
+        "ts",
+        "type"
+      ],
+      "properties": {
+        "_redacted": {
+          "description": "Inline redaction metadata",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/RedactionInfo"
+          }
+        },
+        "call_id": {
+          "description": "References the tool_call entry",
+          "type": "string",
+          "format": "uuid"
+        },
+        "error": {
+          "description": "Error message (mutually exclusive with output)",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "original_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "output": {
+          "description": "Tool output (mutually exclusive with error)",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ToolOutput"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "subagent_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uuid"
+        },
+        "truncated": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "ts": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "tool_result"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    {
+      "description": "Agent's response to the user",
+      "type": "object",
+      "required": [
+        "content",
+        "id",
+        "ts",
+        "type"
+      ],
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "original_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "subagent_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uuid"
+        },
+        "token_usage": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/TokenUsage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "truncated": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "ts": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "response"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    {
+      "description": "Error during the session",
+      "type": "object",
+      "required": [
+        "code",
+        "details",
+        "id",
+        "message",
+        "ts",
+        "type"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/definitions/ErrorCode"
+        },
+        "details": true,
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "message": {
+          "type": "string"
+        },
+        "recoverable": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "subagent_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uuid"
+        },
+        "ts": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "error"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    {
+      "description": "Start of a subagent invocation",
+      "type": "object",
+      "required": [
+        "agent",
+        "id",
+        "ts",
+        "type"
+      ],
+      "properties": {
+        "agent": {
+          "type": "string"
+        },
+        "context": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "parent_subagent_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uuid"
+        },
+        "ts": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "subagent_start"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    {
+      "description": "End of a subagent invocation",
+      "type": "object",
+      "required": [
+        "id",
+        "start_id",
+        "ts",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "start_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/SubagentStatus"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "summary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ts": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "subagent_end"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    {
+      "description": "Annotation added during editing",
+      "type": "object",
+      "required": [
+        "content",
+        "id",
+        "target_id",
+        "ts",
+        "type"
+      ],
+      "properties": {
+        "author": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "content": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/AnnotationStyle"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "ts": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "annotation"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    {
+      "description": "Marker indicating redaction occurred",
+      "type": "object",
+      "required": [
+        "id",
+        "target_id",
+        "ts",
+        "type"
+      ],
+      "properties": {
+        "count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "inline": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/RedactionReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "ts": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "redaction_marker"
+          ]
+        }
+      },
+      "additionalProperties": true
+    }
+  ],
+  "definitions": {
+    "AnnotationStyle": {
+      "description": "Annotation display style",
+      "type": "string",
+      "enum": [
+        "highlight",
+        "comment",
+        "pin",
+        "warning",
+        "success"
+      ]
+    },
+    "Attachment": {
+      "description": "File attachment",
+      "type": "object",
+      "required": [
+        "data",
+        "encoding",
+        "media_type",
+        "type"
+      ],
+      "properties": {
+        "data": {
+          "description": "Base64-encoded content",
+          "type": "string"
+        },
+        "encoding": {
+          "description": "Encoding (must be \"base64\")",
+          "type": "string"
+        },
+        "filename": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "media_type": {
+          "description": "MIME type of the content",
+          "type": "string"
+        },
+        "size_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "type": {
+          "description": "Must be \"binary\" for binary content",
+          "type": "string"
+        }
+      }
+    },
+    "BinaryContent": {
+      "description": "Binary content with base64 encoding",
+      "type": "object",
+      "required": [
+        "data",
+        "encoding",
+        "media_type",
+        "type"
+      ],
+      "properties": {
+        "data": {
+          "type": "string"
+        },
+        "encoding": {
+          "type": "string"
+        },
+        "filename": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "media_type": {
+          "type": "string"
+        },
+        "size_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "truncated": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "type": {
+          "type": "string"
+        }
+      }
+    },
+    "ErrorCode": {
+      "description": "Standard error codes",
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "rate_limit",
+            "api_error",
+            "timeout",
+            "auth_failed",
+            "network_error",
+            "context_overflow",
+            "cancelled",
+            "internal_error",
+            "unknown"
+          ]
+        },
+        {
+          "description": "Custom error code",
+          "type": "object",
+          "required": [
+            "custom"
+          ],
+          "properties": {
+            "custom": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "RedactionInfo": {
+      "description": "Inline redaction information",
+      "type": "object",
+      "required": [
+        "count",
+        "reason"
+      ],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "reason": {
+          "$ref": "#/definitions/RedactionReason"
+        }
+      }
+    },
+    "RedactionReason": {
+      "description": "Reason for redaction",
+      "type": "string",
+      "enum": [
+        "api_key",
+        "password",
+        "email",
+        "phone",
+        "path",
+        "ip_address",
+        "pii",
+        "custom"
+      ]
+    },
+    "SessionEndState": {
+      "description": "How a session ended",
+      "type": "string",
+      "enum": [
+        "completed",
+        "cancelled",
+        "error",
+        "timeout",
+        "unknown"
+      ]
+    },
+    "SubagentStatus": {
+      "description": "Subagent completion status",
+      "type": "string",
+      "enum": [
+        "completed",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "TokenUsage": {
+      "description": "Token usage information for an API response",
+      "type": "object",
+      "required": [
+        "input_tokens",
+        "output_tokens"
+      ],
+      "properties": {
+        "cache_creation_tokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "cache_read_tokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "input_tokens": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "output_tokens": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
+    "ToolOutput": {
+      "description": "Tool output can be a string or binary data",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/definitions/BinaryContent"
+        }
+      ]
+    },
+    "TrimmedMetadata": {
+      "description": "Metadata about trimming",
+      "type": "object",
+      "required": [
+        "kept_range",
+        "original_duration_ms"
+      ],
+      "properties": {
+        "kept_range": {
+          "description": "Kept range as [start_ms, end_ms]",
+          "type": "array",
+          "items": [
+            {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          ],
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "original_duration_ms": {
+          "description": "Duration of the original recording in milliseconds",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RedactionMarkerEntry",
+  "description": "Redaction marker entry",
+  "type": "object",
+  "required": [
+    "id",
+    "target_id",
+    "ts"
+  ],
+  "properties": {
+    "count": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint",
+      "minimum": 0.0
+    },
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "inline": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/RedactionReason"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "target_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "ts": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    }
+  },
+  "additionalProperties": true,
+  "definitions": {
+    "RedactionReason": {
+      "description": "Reason for redaction",
+      "type": "string",
+      "enum": [
+        "api_key",
+        "password",
+        "email",
+        "phone",
+        "path",
+        "ip_address",
+        "pii",
+        "custom"
+      ]
+    }
+  }
+}

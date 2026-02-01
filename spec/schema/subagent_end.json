@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SubagentEndEntry",
+  "description": "Subagent end entry",
+  "type": "object",
+  "required": [
+    "id",
+    "start_id",
+    "ts"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "start_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "status": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/SubagentStatus"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "summary": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "ts": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    }
+  },
+  "additionalProperties": true,
+  "definitions": {
+    "SubagentStatus": {
+      "description": "Subagent completion status",
+      "type": "string",
+      "enum": [
+        "completed",
+        "failed",
+        "cancelled"
+      ]
+    }
+  }
+}

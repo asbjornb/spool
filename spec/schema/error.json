@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ErrorEntry",
+  "description": "Error entry",
+  "type": "object",
+  "required": [
+    "code",
+    "details",
+    "id",
+    "message",
+    "ts"
+  ],
+  "properties": {
+    "code": {
+      "$ref": "#/definitions/ErrorCode"
+    },
+    "details": true,
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "message": {
+      "type": "string"
+    },
+    "recoverable": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "subagent_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid"
+    },
+    "ts": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    }
+  },
+  "additionalProperties": true,
+  "definitions": {
+    "ErrorCode": {
+      "description": "Standard error codes",
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "rate_limit",
+            "api_error",
+            "timeout",
+            "auth_failed",
+            "network_error",
+            "context_overflow",
+            "cancelled",
+            "internal_error",
+            "unknown"
+          ]
+        },
+        {
+          "description": "Custom error code",
+          "type": "object",
+          "required": [
+            "custom"
+          ],
+          "properties": {
+            "custom": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}
