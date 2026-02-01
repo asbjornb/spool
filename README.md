@@ -68,22 +68,22 @@ Early development. Phase 1 is in progress.
 
 - `.spool` format types, serialization, validation
 - Secret detection and destructive redaction (API keys, tokens, emails, IPs, etc.)
-- Claude Code log adapter (reads existing sessions, converts to `.spool`)
-- CLI commands: `view`, `export` (with trim + redact), `info`, `validate`, `browse` (basic list)
+- Claude Code + Codex adapters (reads existing sessions, converts to `.spool`)
+- TUI browser with keyboard navigation and session preview
+- Playback mode with thinking compression
+- CLI commands: `view`, `export` (with trim + redact), `info`, `validate`, `browse`
 
 ### What's next
 
-- TUI browser with keyboard navigation and session preview
-- Playback mode with thinking compression
 - Interactive trimming and annotation
-- Codex adapter
+- Interactive redaction review
 - Web viewer
 
 ### Supported Agents
 
 | Agent | Status |
 |-------|--------|
-| Claude Code | In progress (primary target) |
+| Claude Code | ✅ Implemented |
 | Codex CLI | ✅ Implemented |
 | Cursor | Planned |
 | Aider | Planned |
@@ -106,8 +106,8 @@ Early development. Phase 1 is in progress.
 ```
 crates/
   spool-format/      Core types, serialization, validation, redaction
-  spool-adapters/    Agent log parsers (Claude Code adapter implemented)
-  spool-cli/         CLI application (TUI planned)
+  spool-adapters/    Agent log parsers (Claude Code + Codex implemented)
+  spool-cli/         CLI application (TUI implemented)
 spec/
   SPEC.md            Format specification (RFC-style, ~1000 lines)
   examples/          Example .spool files
