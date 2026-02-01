@@ -1,0 +1,21 @@
+[package]
+name = "spool-adapters"
+description = "Agent log parsers for the Spool format (Claude Code, Codex, etc.)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+spool-format = { path = "../spool-format" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+dirs = { workspace = true }
+glob = { workspace = true }
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }
