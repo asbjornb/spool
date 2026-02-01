@@ -69,7 +69,7 @@ enum Commands {
         path: PathBuf,
     },
 
-    /// Publish a session to spool.dev (coming soon)
+    /// Publish a session to unspool.dev (coming soon)
     Publish {
         /// Path to the .spool file
         path: PathBuf,

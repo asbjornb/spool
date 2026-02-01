@@ -1057,7 +1057,7 @@ Readers MUST accept this file. Display order is implementation-defined but SHOUL
 A JSON Schema for validating Spool entries is available at:
 
 ```
-https://spool.dev/schema/v1.0/entry.json
+https://unspool.dev/schema/v1.0/entry.json
 ```
 
 This schema is informative and may not capture all constraints in this specification.

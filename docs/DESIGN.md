@@ -79,7 +79,7 @@ Secrets are replaced *before* export, never stored. The original logs stay on th
 ### 3. IDs everywhere
 
 Every entry has a unique ID. This enables:
-- Deep links (`spool.dev/abc123#e_047`)
+- Deep links (`unspool.dev/abc123#e_047`)
 - Annotations that reference specific moments
 - Subagent nesting
 - Filtering and search
@@ -106,6 +106,22 @@ The `.spool` format is documented and open. Anyone can:
 
 This makes Spool useful even if you never share anything. The sharing is a bonus. That's how you get daily active usage vs. occasional "look at this cool thing."
 
+## Success Metrics
+
+### Phase 1 (Watch)
+- Users browse sessions weekly
+- Average session viewing time > 2 minutes
+- Users export/trim at least one session
+
+### Phase 2 (Share)
+- Sessions published to unspool.dev
+- Embeds used in docs/blogs
+- Repeat visitors to unspool.dev
+
+### Phase 3 (Shape)
+- Context files edited through Spool
+- Skills shared between team members
+- Time saved debugging agent failures
 ## The Pitch (30 seconds)
 
 *"AI coding assistants are only as good as the context you give them. But context is scattered—across repos, teams, and time. Spool is a context layer. One place to shape what your AI knows, watch how it reasons, and share what works with your team. It's the difference between an AI that writes code and an AI that understands your code."*
@@ -119,8 +135,10 @@ This makes Spool useful even if you never share anything. The sharing is a bonus
 
 ## Open Questions
 
-1. **Editor integration** — VS Code extension? JetBrains plugin?
-2. **Mobile viewer** — Read-only session viewing on mobile?
+1. **Pricing model for unspool.dev** — Free tier limits? Pro features?
+2. **Team/org features** — Private team catalogs? SSO?
+3. **Editor integration** — VS Code extension? JetBrains plugin?
+4. **Mobile viewer** — Read-only session viewing on mobile?
 
 ---
 

@@ -7,7 +7,7 @@ This document outlines the phased development approach for Spool.
 | Phase | Focus | Timeline | Status |
 |-------|-------|----------|--------|
 | 1 | **Watch** — Local TUI tool | 6 weeks | 🔨 In Progress |
-| 2 | **Share** — spool.dev + embeds | 6-8 weeks | 📋 Planned |
+| 2 | **Share** — unspool.dev + embeds | 6-8 weeks | 📋 Planned |
 | 3 | **Shape** — Context editing | 6-8 weeks | 📋 Planned |
 
 ---
@@ -20,15 +20,18 @@ This document outlines the phased development approach for Spool.
 
 ### Week 1-2: Foundation
 
-- [ ] Project setup (Rust workspace, CI/CD)
-- [ ] Core format types (`spool-format` crate)
-  - [ ] Entry types (session, prompt, thinking, tool_call, etc.)
-  - [ ] Serialization/deserialization
-  - [ ] Validation
-- [ ] Claude Code adapter (`spool-adapters` crate)
-  - [ ] Locate log files (`~/.claude/projects/*/sessions/`)
-  - [ ] Parse Claude Code JSON format
-  - [ ] Convert to Spool format
+- [x] Project setup (Rust workspace, CI/CD, GitHub repo)
+- [x] Core format types (`spool-format` crate)
+  - [x] Entry types (session, prompt, thinking, tool_call, etc.)
+  - [x] Serialization/deserialization
+  - [x] Validation
+- [x] Claude Code adapter (`spool-adapters` crate)
+  - [x] Locate log files (`~/.claude/projects/*/*.jsonl`)
+  - [x] Parse Claude Code JSONL format (verified against real logs)
+  - [x] Convert to Spool format with real timestamps
+  - [x] Use sessions-index.json for fast metadata
+- [x] Secret detection and destructive redaction
+- [x] CLI commands: browse (basic list), view, export (with trim + redact), info, validate
 
 ### Week 3-4: TUI Browser
 
@@ -50,22 +53,19 @@ This document outlines the phased development approach for Spool.
   - [ ] Step through entries
   - [ ] Thinking compression (show progress bar, skip duration)
   - [ ] Adjustable speed (1x, 2x, 4x)
-- [ ] Trim functionality
-  - [ ] Mark start/end points
+- [ ] Interactive trim UI
+  - [ ] Mark start/end points in TUI
   - [ ] Preview trimmed result
 - [ ] Annotation support
-  - [ ] Add annotations to entries
+  - [ ] Add annotations to entries from TUI
   - [ ] Edit/delete annotations
 
 ### Week 6: Export & Polish
 
-- [ ] Redaction
-  - [ ] Auto-detect secrets (regex patterns)
-  - [ ] Review/confirm UI
-  - [ ] Destructive replacement
-- [ ] Export to `.spool` file
+- [ ] Interactive redaction review UI (confirm/dismiss detections)
 - [ ] Codex adapter
-- [ ] Documentation & examples
+- [ ] More example .spool files
+- [ ] JSON Schema for the format
 - [ ] Release v0.1.0
 
 ### Deliverables
@@ -86,7 +86,7 @@ spool view session.spool
 
 ---
 
-## Phase 2: Share (spool.dev + Embeds)
+## Phase 2: Share (unspool.dev + Embeds)
 
 **Goal**: Publish sessions to the web, embed in docs, discover patterns.
 
@@ -102,12 +102,12 @@ spool view session.spool
 - [ ] Deep link support (`#entry-id`)
 - [ ] Responsive design
 
-### Week 3-4: spool.dev Backend
+### Week 3-4: unspool.dev Backend
 
 - [ ] User authentication (GitHub OAuth)
 - [ ] Session upload API
 - [ ] Public/private visibility
-- [ ] Unique URLs (`spool.dev/username/slug`)
+- [ ] Unique URLs (`unspool.dev/username/slug`)
 
 ### Week 5-6: Discovery & Social
 
@@ -127,15 +127,15 @@ spool view session.spool
 ### Deliverables
 
 ```bash
-# Publish to spool.dev
+# Publish to unspool.dev
 spool publish session.spool
-# → https://spool.dev/alex/auth-bug-discovery
+# → https://unspool.dev/alex/auth-bug-discovery
 
 # Generate static site
 spool build ./sessions --output ./site
 
 # Embed code
-<script src="https://spool.dev/embed.js" data-session="alex/auth-bug"></script>
+<script src="https://unspool.dev/embed.js" data-session="alex/auth-bug"></script>
 ```
 
 ---
@@ -171,7 +171,7 @@ spool build ./sessions --output ./site
 ### Week 7-8: Team Sharing
 
 - [ ] Package skills/commands for sharing
-- [ ] spool.dev skill catalog
+- [ ] unspool.dev skill catalog
 - [ ] One-click install
 - [ ] Usage analytics
 
@@ -234,13 +234,13 @@ Each crate is independently versioned and can be used as a library.
 - Redaction works reliably
 
 ### Phase 2 ✓ if:
-- 100+ sessions published to spool.dev
+- 100+ sessions published to unspool.dev
 - Embeds work in GitHub READMEs
 - Users discover sessions via search
 
 ### Phase 3 ✓ if:
 - Users edit context files through Spool
-- Teams share skills via spool.dev
+- Teams share skills via unspool.dev
 - Measurable time saved debugging
 
 ---
@@ -248,10 +248,10 @@ Each crate is independently versioned and can be used as a library.
 ## Open Technical Questions
 
 1. **Web viewer tech stack** — React? Svelte? Vanilla JS?
-2. **spool.dev hosting** — Vercel? Fly.io? Self-managed?
+2. **unspool.dev hosting** — Vercel? Fly.io? Self-managed?
 3. **Search backend** — Meilisearch? Typesense? PostgreSQL full-text?
 4. **Authentication** — GitHub-only? Add email/password?
 
 ---
 
-*Last updated: January 2025*
+*Last updated: February 2026*

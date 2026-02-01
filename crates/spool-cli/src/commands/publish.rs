@@ -1,4 +1,4 @@
-//! Publish command - Upload a session to spool.dev.
+//! Publish command - Upload a session to unspool.dev.
 
 use anyhow::Result;
 use std::path::Path;
@@ -8,7 +8,7 @@ pub fn run(path: &Path, public: bool) -> Result<()> {
     println!("   Path: {:?}", path);
     println!("   Public: {}", public);
     println!();
-    println!("🌐 spool.dev publishing coming in Phase 2!");
+    println!("🌐 unspool.dev publishing coming in Phase 2!");
     println!();
     println!("For now, you can:");
     println!("  1. Export your session: spool export <path> --redact");

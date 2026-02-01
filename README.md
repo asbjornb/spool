@@ -10,7 +10,7 @@ Spool captures the **structure** of agent sessions -- prompts, reasoning, tool c
 
 1. **An open format** (`.spool`) -- JSONL where every entry is typed and identified. A tool call is a tool call, not a blob of text. [Read the spec](spec/SPEC.md).
 2. **A local tool** (`spool`) -- Browse your existing Claude Code sessions, trim to the interesting part, redact secrets, add annotations, export.
-3. **A sharing service** (spool.dev, planned) -- Publish sessions, embed in docs, discover patterns others have found.
+3. **A sharing service** (unspool.dev, planned) -- Publish sessions, embed in docs, discover patterns others have found.
 
 ## The Format
 
@@ -61,7 +61,7 @@ Early development. Phase 1 is in progress.
 | Phase | Focus | Status |
 |-------|-------|--------|
 | **Watch** | Local CLI/TUI for browsing, replaying, trimming sessions | In progress |
-| **Share** | spool.dev, web viewer, embeds, static site generator | Planned |
+| **Share** | unspool.dev, web viewer, embeds, static site generator | Planned |
 | **Shape** | CLAUDE.md editing, context file management, team sharing | Planned |
 
 ### What works now
@@ -117,7 +117,7 @@ docs/
   ROADMAP.md         Development phases
 web/
   viewer/            Web viewer component (planned)
-service/             Backend for spool.dev (planned)
+service/             Backend for unspool.dev (planned)
 ```
 
 ## Building
