@@ -97,6 +97,28 @@ enum Commands {
         /// Apply automatic redaction
         #[arg(long)]
         redact: bool,
+
+        /// Preview redactions without exporting (use with --redact)
+        #[arg(long)]
+        dry_run: bool,
+
+        /// Skip specific detection indices (comma-separated, e.g., 0,2,5)
+        #[arg(long)]
+        skip: Option<String>,
+
+        /// Output as JSON (for machine consumption)
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Detect secrets in a session (without exporting)
+    Detect {
+        /// Path to the session (agent log or .spool file)
+        path: PathBuf,
+
+        /// Output as JSON (for machine consumption)
+        #[arg(long)]
+        json: bool,
     },
 
     /// Validate a .spool file
@@ -130,7 +152,19 @@ fn main() -> Result<()> {
             output,
             trim,
             redact,
-        }) => commands::export::run(&source, output.as_deref(), trim.as_deref(), redact),
+            dry_run,
+            skip,
+            json,
+        }) => commands::export::run(
+            &source,
+            output.as_deref(),
+            trim.as_deref(),
+            redact,
+            dry_run,
+            skip.as_deref(),
+            json,
+        ),
+        Some(Commands::Detect { path, json }) => commands::detect::run(&path, json),
         Some(Commands::Validate { path }) => commands::validate::run(&path),
         None => {
             // spool <path> → open directly in Editor (TUI)

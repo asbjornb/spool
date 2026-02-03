@@ -2,6 +2,7 @@
 
 pub mod agent;
 pub mod cache;
+pub mod detect;
 pub mod export;
 pub mod info;
 pub mod list;

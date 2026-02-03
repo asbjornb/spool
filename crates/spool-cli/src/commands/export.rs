@@ -1,63 +1,92 @@
 //! Export command - Convert and export sessions to .spool format.
 
 use anyhow::{Context, Result};
-use spool_format::SecretDetector;
 use std::path::Path;
 
 use super::agent::load_spool_or_log;
+use super::detect::{apply_redactions, detect_secrets};
 
-pub fn run(source: &Path, output: Option<&Path>, trim: Option<&str>, redact: bool) -> Result<()> {
-    println!("📤 Exporting session...");
-    println!("   Source: {:?}", source);
-
+pub fn run(
+    source: &Path,
+    output: Option<&Path>,
+    trim: Option<&str>,
+    redact: bool,
+    dry_run: bool,
+    skip: Option<&str>,
+    json: bool,
+) -> Result<()> {
     // Determine if source is already a .spool file or an agent log
     let mut file = load_spool_or_log(source)?;
 
     // Apply trimming if specified
     if let Some(trim_range) = trim {
         let (start, end) = parse_trim_range(trim_range)?;
-        println!("   Trimming: {}ms - {}ms", start, end);
+        if !dry_run && !json {
+            println!("   Trimming: {}ms - {}ms", start, end);
+        }
         file.trim(start, end);
     }
 
-    // Apply redaction if requested
+    // Handle redaction
     if redact {
-        println!("   Applying redaction...");
-        let detector = SecretDetector::with_defaults();
-        let mut redaction_count = 0;
+        let detections = detect_secrets(&file);
 
-        for entry in &mut file.entries {
-            // Redact content in various entry types
-            match entry {
-                spool_format::Entry::Prompt(p) => {
-                    let (redacted, secrets) = detector.redact(&p.content);
-                    redaction_count += secrets.len();
-                    p.content = redacted;
+        if dry_run {
+            // Dry-run mode: just show what would be redacted
+            if json {
+                println!("{}", serde_json::to_string_pretty(&detections)?);
+            } else if detections.is_empty() {
+                println!("No secrets detected.");
+            } else {
+                println!("Would redact {} secret(s):\n", detections.len());
+                for d in &detections {
+                    println!(
+                        "  [{}] {} in {} (entry {})",
+                        d.index, d.category, d.entry_type, d.entry_index
+                    );
+                    println!("      Match: {}", truncate(&d.matched, 60));
+                    println!();
                 }
-                spool_format::Entry::Response(r) => {
-                    let (redacted, secrets) = detector.redact(&r.content);
-                    redaction_count += secrets.len();
-                    r.content = redacted;
-                }
-                spool_format::Entry::ToolResult(tr) => {
-                    if let Some(spool_format::ToolOutput::Text(ref mut text)) = tr.output {
-                        let (redacted, secrets) = detector.redact(text);
-                        redaction_count += secrets.len();
-                        *text = redacted;
-                    }
-                }
-                spool_format::Entry::Thinking(t) => {
-                    let (redacted, secrets) = detector.redact(&t.content);
-                    redaction_count += secrets.len();
-                    t.content = redacted;
-                }
-                _ => {}
+                println!(
+                    "Run without --dry-run to apply redactions, or use --skip 0,1,2 to exclude."
+                );
+            }
+            return Ok(());
+        }
+
+        // Parse skip indices
+        let skip_indices = parse_skip_indices(skip)?;
+
+        if !json {
+            println!("📤 Exporting session...");
+            println!("   Source: {:?}", source);
+            println!("   Applying redaction...");
+        }
+
+        let redaction_count = detections
+            .iter()
+            .filter(|d| !skip_indices.contains(&d.index))
+            .count();
+
+        apply_redactions(&mut file, &detections, &skip_indices);
+
+        if !json && redaction_count > 0 {
+            println!("   Redacted {} secret(s)", redaction_count);
+            if !skip_indices.is_empty() {
+                println!("   Skipped {} detection(s)", skip_indices.len());
             }
         }
+    } else if !dry_run && !json {
+        println!("📤 Exporting session...");
+        println!("   Source: {:?}", source);
+    }
 
-        if redaction_count > 0 {
-            println!("   Redacted {} secret(s)", redaction_count);
+    if dry_run {
+        // If dry_run without redact, nothing to show
+        if !json {
+            println!("Nothing to preview (use --redact --dry-run to preview redactions)");
         }
+        return Ok(());
     }
 
     // Determine output path
@@ -70,10 +99,33 @@ pub fn run(source: &Path, output: Option<&Path>, trim: Option<&str>, redact: boo
     file.write_to_path(&output_path)
         .with_context(|| format!("Failed to write: {:?}", output_path))?;
 
-    println!("✅ Exported to: {:?}", output_path);
-    println!("   Entries: {}", file.entries.len());
+    if json {
+        // JSON output for the export result
+        let result = serde_json::json!({
+            "output": output_path.to_string_lossy(),
+            "entries": file.entries.len(),
+        });
+        println!("{}", serde_json::to_string_pretty(&result)?);
+    } else {
+        println!("✅ Exported to: {:?}", output_path);
+        println!("   Entries: {}", file.entries.len());
+    }
 
     Ok(())
+}
+
+fn parse_skip_indices(skip: Option<&str>) -> Result<Vec<usize>> {
+    match skip {
+        None | Some("") => Ok(Vec::new()),
+        Some(s) => s
+            .split(',')
+            .map(|part| {
+                part.trim()
+                    .parse::<usize>()
+                    .with_context(|| format!("Invalid skip index: {}", part))
+            })
+            .collect(),
+    }
 }
 
 fn parse_trim_range(range: &str) -> Result<(u64, u64)> {
@@ -106,5 +158,13 @@ fn parse_time(time: &str) -> Result<u64> {
         // Seconds format
         let seconds: u64 = time.parse()?;
         Ok(seconds * 1000)
+    }
+}
+
+fn truncate(s: &str, max_len: usize) -> String {
+    if s.len() <= max_len {
+        s.to_string()
+    } else {
+        format!("{}...", &s[..max_len.saturating_sub(3)])
     }
 }

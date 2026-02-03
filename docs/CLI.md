@@ -14,6 +14,7 @@ spool list [--json]            # List sessions to stdout
 spool info <path> [--json]     # Show session metadata
 spool view <path> [--json]     # Print session content
 spool search <query> [--json]  # Search sessions
+spool detect <path> [--json]   # Detect secrets in a session
 spool export <path> [options]  # Convert/trim/redact to .spool
 spool validate <path>          # Check .spool file validity
 ```
@@ -140,6 +141,36 @@ spool search "bug fix" -n 5 --json
 ]
 ```
 
+### `spool detect <path>`
+
+Detect secrets in a session without exporting. Useful for previewing what would be redacted.
+
+```bash
+# Human-readable list of detections
+spool detect session.jsonl
+
+# JSON output for programmatic use
+spool detect session.jsonl --json
+```
+
+**JSON output schema:**
+```json
+[
+  {
+    "index": 0,
+    "entry_index": 5,
+    "entry_type": "prompt",
+    "category": "Email",
+    "match": "test@example.com",
+    "replacement": "[REDACTED:email]",
+    "context_before": "My email is ",
+    "context_after": " and my phone",
+    "start": 12,
+    "end": 28
+  }
+]
+```
+
 ### `spool export <path>`
 
 Convert agent logs to `.spool` format with optional trimming and redaction.
@@ -153,6 +184,13 @@ spool export session.jsonl --trim 0:30-2:45 --output trimmed.spool
 
 # With redaction (removes API keys, tokens, emails, etc.)
 spool export session.jsonl --redact --output redacted.spool
+
+# Preview redactions without exporting (dry-run)
+spool export session.jsonl --redact --dry-run
+spool export session.jsonl --redact --dry-run --json
+
+# Selective redaction (skip specific detection indices)
+spool export session.jsonl --redact --skip 0,2 --output partial.spool
 ```
 
 ### `spool validate <path>`
@@ -228,6 +266,22 @@ spool search "database migration" --json | jq -r '.[].path'
 
 # Export with redaction
 spool export session.jsonl --redact --output clean.spool
+```
+
+### Selective redaction workflow
+
+```bash
+# Step 1: Detect secrets and review
+spool detect session.jsonl --json > detections.json
+
+# Step 2: Review the detections (indices 0, 1, 2, ...)
+cat detections.json | jq '.[] | "\(.index): \(.category) - \(.match)"'
+
+# Step 3: Export, skipping false positives (e.g., indices 1 and 3)
+spool export session.jsonl --redact --skip 1,3 --output cleaned.spool
+
+# Or use dry-run to preview what would be redacted
+spool export session.jsonl --redact --dry-run --json
 ```
 
 ### Pipe session content
