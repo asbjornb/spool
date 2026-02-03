@@ -126,6 +126,24 @@ enum Commands {
         /// Path to the .spool file
         path: PathBuf,
     },
+
+    /// Manage Claude Code skill for spool
+    Skill {
+        #[command(subcommand)]
+        action: SkillAction,
+    },
+}
+
+#[derive(Subcommand)]
+enum SkillAction {
+    /// Install the spool skill to Claude Code (~/.claude/commands/)
+    Install,
+    /// Uninstall the spool skill from Claude Code
+    Uninstall,
+    /// Show the skill content
+    Show,
+    /// Show the skill installation path
+    Path,
 }
 
 fn main() -> Result<()> {
@@ -166,6 +184,12 @@ fn main() -> Result<()> {
         ),
         Some(Commands::Detect { path, json }) => commands::detect::run(&path, json),
         Some(Commands::Validate { path }) => commands::validate::run(&path),
+        Some(Commands::Skill { action }) => match action {
+            SkillAction::Install => commands::skill::install(),
+            SkillAction::Uninstall => commands::skill::uninstall(),
+            SkillAction::Show => commands::skill::show(),
+            SkillAction::Path => commands::skill::path(),
+        },
         None => {
             // spool <path> → open directly in Editor (TUI)
             // spool        → open Library (TUI)

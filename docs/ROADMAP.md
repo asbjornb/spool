@@ -64,12 +64,15 @@ This document outlines the phased development approach for Spool.
 
 ### Week 6: Export & Polish
 
-- [ ] Interactive redaction review UI (confirm/dismiss detections)
+- [x] Interactive redaction review UI (confirm/dismiss detections)
+  - [x] TUI modal with per-detection toggle
+  - [x] CLI `spool detect` + `--dry-run` + `--skip` for agents
 - [x] Codex adapter
 - [x] More example .spool files
 - [x] JSON Schema for the format
 - [x] Format improvements: `files_modified`, `token_usage`, `model` on entries
 - [x] Idle gap compression in player (compress user think-time to max 2s)
+- [ ] Claude Code skill for spool CLI (`spool skill install`)
 - [ ] Release v0.1.0
 
 ### Deliverables

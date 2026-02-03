@@ -17,6 +17,7 @@ spool search <query> [--json]  # Search sessions
 spool detect <path> [--json]   # Detect secrets in a session
 spool export <path> [options]  # Convert/trim/redact to .spool
 spool validate <path>          # Check .spool file validity
+spool skill install            # Install Claude Code skill
 ```
 
 ---
@@ -200,6 +201,26 @@ Check a `.spool` file for format errors.
 ```bash
 spool validate session.spool
 ```
+
+### `spool skill`
+
+Manage the Claude Code skill for spool. The skill teaches Claude Code how to use spool commands effectively.
+
+```bash
+# Install the skill to ~/.claude/commands/
+spool skill install
+
+# Uninstall the skill
+spool skill uninstall
+
+# Show the skill content
+spool skill show
+
+# Show where the skill would be installed
+spool skill path
+```
+
+After installing, Claude Code can use `/spool` to get contextual help with spool commands.
 
 ---
 

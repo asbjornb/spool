@@ -97,11 +97,13 @@ Not all need to happen now, but they should be tracked.
   - Text input, style selection (highlight/success/warning/info)
   - Annotations persisted in exported .spool file
 
-- [ ] **Interactive redaction review**
-  - Before export: show detected secrets with context
-  - Confirm/dismiss each detection
-  - Manually mark additional text
-  - Preview redacted output
+- [x] **Interactive redaction review**
+  - [x] TUI: Review modal with confirm/dismiss per detection (`x` key)
+  - [x] TUI: Preview stage before export
+  - [x] CLI: `spool detect` command for agents/scripts
+  - [x] CLI: `spool export --redact --dry-run` for preview
+  - [x] CLI: `spool export --redact --skip 0,2` for selective redaction
+  - [ ] (Future) Manually mark additional text regions
 
 ## Phase 2: Share
 
