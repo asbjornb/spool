@@ -1,0 +1,21 @@
+{
+  "name": "unspool-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler d1 migrations apply unspool-db --remote && wrangler deploy",
+    "migrate": "wrangler d1 migrations apply unspool-db --remote",
+    "migrate:local": "wrangler d1 migrations apply unspool-db --local",
+    "migrate:list": "wrangler d1 migrations list unspool-db"
+  },
+  "dependencies": {
+    "nanoid": "^5.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240129.0",
+    "typescript": "^5.0.0",
+    "wrangler": "^3.0.0"
+  }
+}

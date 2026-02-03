@@ -109,24 +109,63 @@ Not all need to happen now, but they should be tracked.
 
 Architecture decided: Cloudflare-native stack (Pages + Workers + D1 + R2).
 See [docs/UNSPOOL_ARCHITECTURE.md](docs/UNSPOOL_ARCHITECTURE.md) for full design.
-Scaffolding (Worker, schema, config) in `service/`.
 
-- [ ] **Web viewer component** (web/viewer/)
-  - Renders .spool in browser, playback controls, tool filtering, search
-  - Deep links (#entry-id), responsive, embeddable
-  - SvelteKit or SolidStart (small bundles, SSR-capable)
+### Done
 
-- [ ] **unspool.dev backend** (service/)
-  - Cloudflare Workers API, D1 metadata, R2 blob storage
-  - GitHub + Google OAuth, upload API, public/unlisted/private visibility
-  - nanoid short URLs (`unspool.dev/s/:id`)
-  - TTL: 14 days anonymous, permanent for authed users
-  - Implement `spool publish` command
+- [x] **Web viewer component** (web/viewer/)
+  - SvelteKit 5 with static adapter
+  - Renders .spool files with playback controls (play/pause, speed 0.25x-16x, step, seek)
+  - Entry components for all types (prompt, response, thinking, tool_call, etc.)
+  - Thinking/idle gap compression in playback
+  - Drag-and-drop local file loading
+  - Deployed to https://unspool-viewer.pages.dev
 
-- [ ] **Embeds + static site generator**
-  - `<iframe>` embed support (`/embed/:id` minimal viewer)
+- [x] **Backend infrastructure** (service/)
+  - Cloudflare Worker deployed to https://unspool-api.asbjoernbrandt.workers.dev
+  - D1 database with sessions/users/tokens schema
+  - R2 bucket for .spool file storage
+  - Upload, get session, get content endpoints
+  - TTL cleanup cron job
+  - GitHub Actions CI/CD for auto-deploy
+
+### In Progress
+
+- [ ] **Upload functionality**
+  - Wire viewer to API for fetching published sessions
+  - Add upload UI (drag-drop or button) to publish .spool files
+  - Display shareable URL after upload
+  - Route: `/s/:id` to view published sessions
+
+- [ ] **Custom domain**
+  - Configure unspool.dev DNS
+  - Point viewer to unspool.dev, API to api.unspool.dev
+  - Update CORS and route config
+
+### Planned
+
+- [ ] **Deep links and routing**
+  - `/s/:id` route for viewing published sessions
+  - `#entry-id` deep links to specific entries
+  - `/embed/:id` minimal embed viewer
+
+- [ ] **Auth & user features** (later)
+  - GitHub + Google OAuth
+  - User profiles, session ownership
+  - Public/unlisted/private visibility
+  - `spool publish` CLI command
+
+- [ ] **Embeds + static site generator** (later)
+  - `<iframe>` embed support
   - OpenGraph cards for link previews
   - `spool build` generates static site from .spool directory
+
+### Future: Client-side conversion
+
+- [ ] **Browser-based session conversion**
+  - Port spool-adapters to JavaScript or compile to WASM
+  - Upload raw Claude Code/Codex session logs directly
+  - Run conversion, redaction, trimming, annotation all client-side
+  - No sensitive data leaves the browser until user explicitly publishes
 
 ## Phase 3: Shape
 

@@ -28,3 +28,8 @@ Thumbs.db
 .env
 .env.local
 config.local.toml
+
+# Node.js
+node_modules/
+.svelte-kit/
+.wrangler/

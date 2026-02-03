@@ -99,51 +99,56 @@ spool view session.spool
 
 **Why second**: Once people can create `.spool` files locally, they'll want to share them. This is the network effect phase.
 
-### Week 1-2: Web Viewer
+### Week 1-2: Web Viewer ✅
 
-- [ ] Static web viewer component
-  - [ ] Renders `.spool` files
-  - [ ] Playback controls
+- [x] Static web viewer component
+  - [x] Renders `.spool` files
+  - [x] Playback controls (play/pause, speed, step, seek)
   - [ ] Tool filtering
   - [ ] Search within session
 - [ ] Deep link support (`#entry-id`)
-- [ ] Responsive design
+- [x] Responsive design
+- [x] Deployed to https://unspool-viewer.pages.dev
 
-### Week 3-4: unspool.dev Backend
+### Week 3-4: unspool.dev Backend 🔨
 
-- [ ] User authentication (GitHub OAuth)
-- [ ] Session upload API (accept gzipped .spool, ~125 KB avg per session)
-- [ ] Public/private visibility
-- [ ] Unique URLs (`unspool.dev/username/slug`)
-- [ ] Storage: gzipped spool on object storage (S3/R2). ~12 GB per 1K users.
+- [x] Backend infrastructure deployed
+  - [x] Cloudflare Worker API (https://unspool-api.asbjoernbrandt.workers.dev)
+  - [x] D1 database with schema
+  - [x] R2 bucket for storage
+  - [x] GitHub Actions CI/CD
+- [ ] Wire viewer to fetch published sessions (`/s/:id` route)
+- [ ] Upload UI in viewer
+- [ ] Custom domain (unspool.dev)
+- [ ] User authentication (GitHub OAuth) -- deferred
 
-### Week 5-6: Discovery & Social
+### Week 5-6: Client-side Conversion (New)
 
-- [ ] Browse by agent, tool, tag
-- [ ] Full-text search
-- [ ] "Trending" sessions
-- [ ] Follow creators
-- [ ] View counts, stars
+- [ ] Port Claude Code adapter to JavaScript/WASM
+- [ ] Upload raw session logs, convert in browser
+- [ ] Client-side redaction (sensitive data never leaves browser)
+- [ ] Trimming and annotation UI
+- [ ] Publish converted .spool to backend
 
-### Week 7-8: Embeds & Static Sites
+### Week 7-8: Embeds & Polish
 
 - [ ] Embeddable `<iframe>` / `<script>` tag
 - [ ] OpenGraph/Twitter cards for link previews
-- [ ] Static site generator (`spool build`)
-- [ ] GitHub Pages integration
+- [ ] Deep links (`#entry-id`)
+- [ ] Tool filtering and search within session
 
 ### Deliverables
 
 ```bash
 # Publish to unspool.dev
 spool publish session.spool
-# → https://unspool.dev/alex/auth-bug-discovery
+# → https://unspool.dev/s/V1StGXR8_Z
 
-# Generate static site
-spool build ./sessions --output ./site
+# Or upload via web UI at unspool.dev
+# Drag-drop .spool file or raw Claude Code session
 
 # Embed code
-<script src="https://unspool.dev/embed.js" data-session="alex/auth-bug"></script>
+<iframe src="https://unspool.dev/embed/V1StGXR8_Z" width="100%" height="400"></iframe>
 ```
 
 ---
@@ -242,9 +247,12 @@ Each crate is independently versioned and can be used as a library.
 - ~~Redaction works reliably~~ ✅ (interactive review UI remaining)
 
 ### Phase 2 ✓ if:
-- 100+ sessions published to unspool.dev
-- Embeds work in GitHub READMEs
-- Users discover sessions via search
+- [x] Web viewer deployed and functional
+- [x] Backend API deployed with upload/retrieve
+- [ ] Users can upload and share .spool files via web UI
+- [ ] Custom domain (unspool.dev) configured
+- [ ] 100+ sessions published to unspool.dev
+- [ ] Embeds work in GitHub READMEs
 
 ### Phase 3 ✓ if:
 - Users edit context files through Spool
