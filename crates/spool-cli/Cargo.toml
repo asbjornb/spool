@@ -24,6 +24,9 @@ crossterm = { workspace = true }
 # Async
 tokio = { workspace = true }
 
+# Serialization
+serde = { workspace = true }
+
 # Utilities
 anyhow = { workspace = true }
 chrono = { workspace = true }

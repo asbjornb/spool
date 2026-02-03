@@ -1,4 +1,4 @@
-//! Shared helpers for detecting agent logs and converting to Spool.
+//! Shared helpers for detecting agent logs, discovering sessions, and converting to Spool.
 
 use anyhow::{Context, Result};
 use spool_adapters::{claude_code, codex, AgentType, SessionInfo};
@@ -7,29 +7,29 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 
+use super::cache::load_cached_or_convert;
+
 pub fn load_spool_or_log(path: &Path) -> Result<SpoolFile> {
-    if path.extension().map(|e| e == "spool").unwrap_or(false) {
-        return SpoolFile::from_path(path).with_context(|| format!("Failed to read: {:?}", path));
-    }
+    load_cached_or_convert(path, || {
+        let agent = detect_agent_from_log(path)?;
+        let session_info = SessionInfo {
+            path: path.to_path_buf(),
+            agent,
+            created_at: None,
+            modified_at: None,
+            title: None,
+            project_dir: None,
+            message_count: None,
+        };
 
-    let agent = detect_agent_from_log(path)?;
-    let session_info = SessionInfo {
-        path: path.to_path_buf(),
-        agent,
-        created_at: None,
-        modified_at: None,
-        title: None,
-        project_dir: None,
-        message_count: None,
-    };
-
-    match agent {
-        AgentType::ClaudeCode => claude_code::convert(&session_info)
-            .with_context(|| format!("Failed to convert session: {:?}", path)),
-        AgentType::Codex => codex::convert(&session_info)
-            .with_context(|| format!("Failed to convert session: {:?}", path)),
-        _ => anyhow::bail!("Unsupported agent log: {:?}", path),
-    }
+        match agent {
+            AgentType::ClaudeCode => claude_code::convert(&session_info)
+                .with_context(|| format!("Failed to convert session: {:?}", path)),
+            AgentType::Codex => codex::convert(&session_info)
+                .with_context(|| format!("Failed to convert session: {:?}", path)),
+            _ => anyhow::bail!("Unsupported agent log: {:?}", path),
+        }
+    })
 }
 
 pub fn detect_agent_from_log(path: &Path) -> Result<AgentType> {
@@ -54,4 +54,25 @@ pub fn detect_agent_from_log(path: &Path) -> Result<AgentType> {
         });
     }
     Ok(AgentType::Unknown)
+}
+
+/// Discover all sessions from all known agent log locations.
+/// Returns sessions sorted by modified_at (newest first), filtering out empty sessions.
+pub fn find_all_sessions() -> Result<Vec<SessionInfo>> {
+    let mut sessions =
+        claude_code::find_sessions().context("Failed to discover Claude Code sessions")?;
+    sessions.extend(codex::find_sessions().context("Failed to discover Codex sessions")?);
+    sessions.sort_by(|a, b| b.modified_at.cmp(&a.modified_at));
+    sessions.retain(|s| s.message_count.map(|c| c > 0).unwrap_or(true));
+    Ok(sessions)
+}
+
+/// Convert a SessionInfo into a SpoolFile using the appropriate adapter.
+/// Uses caching to avoid re-parsing unchanged session logs.
+pub fn convert_session(session: &SessionInfo) -> Result<SpoolFile> {
+    load_cached_or_convert(&session.path, || match session.agent {
+        AgentType::ClaudeCode => claude_code::convert(session),
+        AgentType::Codex => codex::convert(session),
+        _ => anyhow::bail!("Unsupported agent: {}", session.agent.as_str()),
+    })
 }

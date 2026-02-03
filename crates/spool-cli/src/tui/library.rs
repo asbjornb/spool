@@ -1,6 +1,6 @@
 //! Library view - Interactive session browser.
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
@@ -9,12 +9,13 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem, Paragraph, Wrap},
     Frame,
 };
-use spool_adapters::{claude_code, codex, AgentType, SessionInfo};
+use spool_adapters::{AgentType, SessionInfo};
 use spool_format::Entry;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 use super::common::{format_tool_input, truncate_str_with_ellipsis};
+use crate::commands::agent;
 
 /// Action returned by the Library view to the top-level app loop.
 pub enum LibraryAction {
@@ -54,10 +55,7 @@ pub struct LibraryState {
 
 impl LibraryState {
     pub fn new(agent_filter: Option<String>) -> Result<Self> {
-        let sessions: Vec<SessionInfo> = find_all_sessions()?
-            .into_iter()
-            .filter(|s| s.message_count.map(|c| c > 0).unwrap_or(true))
-            .collect();
+        let sessions: Vec<SessionInfo> = agent::find_all_sessions()?;
 
         let filtered_indices: Vec<usize> = sessions
             .iter()
@@ -167,7 +165,7 @@ impl LibraryState {
         }
 
         let session = &self.sessions[idx];
-        match convert_session(session) {
+        match agent::convert_session(session) {
             Ok(spool_file) => {
                 self.preview = Some(PreviewData {
                     session_index: idx,
@@ -584,21 +582,5 @@ impl LibraryState {
 
         let bar = Paragraph::new(left_text).style(style);
         f.render_widget(bar, area);
-    }
-}
-
-fn find_all_sessions() -> Result<Vec<SessionInfo>> {
-    let mut sessions =
-        claude_code::find_sessions().context("Failed to discover Claude Code sessions")?;
-    sessions.extend(codex::find_sessions().context("Failed to discover Codex sessions")?);
-    sessions.sort_by(|a, b| b.modified_at.cmp(&a.modified_at));
-    Ok(sessions)
-}
-
-pub fn convert_session(session: &SessionInfo) -> Result<spool_format::SpoolFile> {
-    match session.agent {
-        AgentType::ClaudeCode => claude_code::convert(session),
-        AgentType::Codex => codex::convert(session),
-        _ => anyhow::bail!("Unsupported agent: {}", session.agent.as_str()),
     }
 }
