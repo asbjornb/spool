@@ -61,22 +61,8 @@ pub fn run(
                     };
                     if let Some(text) = text {
                         if text.to_lowercase().contains(&query_lower) {
-                            // Extract a snippet around the match
-                            if let Some(pos) = text.to_lowercase().find(&query_lower) {
-                                let start = pos.saturating_sub(40);
-                                let end = (pos + query.len() + 40).min(text.len());
-                                // Find safe char boundaries
-                                let start = text[..start]
-                                    .rfind(char::is_whitespace)
-                                    .map(|p| p + 1)
-                                    .unwrap_or(start);
-                                let end = text[end..]
-                                    .find(char::is_whitespace)
-                                    .map(|p| p + end)
-                                    .unwrap_or(end);
-                                let snippet = text[start..end].replace('\n', " ");
-                                matched_content = Some(format!("...{}...", snippet));
-                            }
+                            // Extract a snippet around the match using char indices for UTF-8 safety
+                            matched_content = extract_snippet(text, &query_lower);
                             break;
                         }
                     }
@@ -129,4 +115,47 @@ pub fn run(
     }
 
     Ok(())
+}
+
+/// Extract a snippet around the query match, using char indices for UTF-8 safety.
+fn extract_snippet(text: &str, query_lower: &str) -> Option<String> {
+    let text_lower = text.to_lowercase();
+    let match_start = text_lower.find(query_lower)?;
+
+    // Build a mapping of char indices to byte positions
+    let char_indices: Vec<(usize, usize)> = text
+        .char_indices()
+        .enumerate()
+        .map(|(char_idx, (byte_idx, _))| (char_idx, byte_idx))
+        .collect();
+
+    // Find char index of match start
+    let match_char_idx = char_indices
+        .iter()
+        .position(|(_, byte_idx)| *byte_idx >= match_start)
+        .unwrap_or(0);
+
+    // Calculate snippet boundaries in char space (40 chars context)
+    let start_char = match_char_idx.saturating_sub(40);
+    let end_char = (match_char_idx + query_lower.chars().count() + 40).min(char_indices.len());
+
+    // Convert back to byte positions
+    let start_byte = char_indices.get(start_char).map(|(_, b)| *b).unwrap_or(0);
+    let end_byte = char_indices
+        .get(end_char)
+        .map(|(_, b)| *b)
+        .unwrap_or(text.len());
+
+    // Find word boundaries for cleaner snippets
+    let start_byte = text[..start_byte]
+        .rfind(char::is_whitespace)
+        .map(|p| p + 1)
+        .unwrap_or(start_byte);
+    let end_byte = text[end_byte..]
+        .find(char::is_whitespace)
+        .map(|p| p + end_byte)
+        .unwrap_or(end_byte);
+
+    let snippet = text[start_byte..end_byte].replace('\n', " ");
+    Some(format!("...{}...", snippet))
 }

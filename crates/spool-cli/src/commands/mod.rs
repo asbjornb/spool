@@ -1,6 +1,7 @@
 //! CLI command implementations.
 
 pub mod agent;
+pub mod cache;
 pub mod export;
 pub mod info;
 pub mod list;

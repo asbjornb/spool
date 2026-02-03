@@ -7,7 +7,7 @@ use std::path::Path;
 use super::agent::load_spool_or_log;
 
 #[derive(Serialize)]
-struct SessionInfo {
+struct SessionMetadata {
     title: Option<String>,
     agent: String,
     agent_version: Option<String>,
@@ -37,7 +37,7 @@ pub fn run(path: &Path, json: bool) -> Result<()> {
     let tools = file.tools_used();
 
     if json {
-        let info = SessionInfo {
+        let info = SessionMetadata {
             title: file.session.title.clone(),
             agent: file.session.agent.clone(),
             agent_version: file.session.agent_version.clone(),
