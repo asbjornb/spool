@@ -193,9 +193,9 @@ spool <path>    # Opens the Editor view directly on a file
 | h/l | Step backward/forward |
 | +/- | Adjust speed |
 | j/k | Scroll content |
-| s | Mark trim start |
-| d | Mark trim end |
-| e | Export trimmed session |
+| [ | Mark trim start |
+| ] | Mark trim end |
+| x | Export (with redaction review) |
 | a | Add annotation |
 | i | Show session info |
 | q | Back to library / quit |
