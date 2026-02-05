@@ -151,6 +151,10 @@
 					<button onclick={() => loadDemo('demo.spool')}>Try a demo</button>
 					<button onclick={() => loadDemo('debugging-demo.spool')}>Debugging demo</button>
 				</div>
+
+				<div class="explore-link">
+					<a href="/explore">Browse public sessions &rarr;</a>
+				</div>
 			</div>
 
 			{#if error}
@@ -220,6 +224,20 @@
 
 	.about a {
 		color: var(--accent);
+	}
+
+	.explore-link {
+		margin-top: 0.5rem;
+	}
+
+	.explore-link a {
+		color: var(--accent);
+		text-decoration: none;
+		font-size: 0.9rem;
+	}
+
+	.explore-link a:hover {
+		text-decoration: underline;
 	}
 
 </style>

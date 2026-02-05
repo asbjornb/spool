@@ -3,7 +3,7 @@
 	import { Player, SPEED_PRESETS } from '$lib/player.svelte';
 	import { formatDuration, formatTimestamp, entryTypeLabel } from '$lib/parser';
 	import { spoolToJsonl, trimSpool, addAnnotation, removeAnnotation, detectSecretsInSpool, redactSpool } from '$lib/spool-export';
-	import { uploadSession, type UploadResponse } from '$lib/api';
+	import { uploadSession, type UploadResponse, type Visibility } from '$lib/api';
 	import { getReplacement, type DetectedSecret, type SecretCategory } from '$lib/redaction';
 	import EntryComponent from './Entry.svelte';
 	import Timeline from './Timeline.svelte';
@@ -38,6 +38,7 @@
 	let uploadError = $state<string | null>(null);
 	let copied = $state(false);
 	let statusMessage = $state<string | null>(null);
+	let visibility = $state<Visibility>('unlisted');
 
 	// Build annotation lookup: target_id -> annotations
 	const annotationMap = $derived.by(() => {
@@ -168,7 +169,7 @@
 		uploadError = null;
 		try {
 			const content = spoolToJsonl(spool);
-			uploadResult = await uploadSession(content);
+			uploadResult = await uploadSession(content, visibility);
 		} catch (e) {
 			uploadError = e instanceof Error ? e.message : 'Upload failed';
 		} finally {
@@ -305,12 +306,16 @@
 				Download .spool
 			</button>
 			{#if uploadResult}
-				<span class="upload-success">Published!</span>
+				<span class="upload-success">Published ({visibility})</span>
 				<button class="toolbar-btn accent" onclick={copyUrl}>
 					{copied ? 'Copied!' : 'Copy link'}
 				</button>
 				<a href={uploadResult.url} class="toolbar-btn accent" target="_blank">View</a>
 			{:else}
+				<select class="visibility-select" bind:value={visibility} title="Visibility">
+					<option value="unlisted">Unlisted</option>
+					<option value="public">Public</option>
+				</select>
 				<button class="toolbar-btn accent" onclick={handleUpload} disabled={uploading}>
 					{uploading ? 'Publishing...' : 'Publish & Share'}
 				</button>
@@ -489,6 +494,20 @@
 	.upload-success {
 		color: var(--green);
 		font-size: 0.8rem;
+	}
+
+	.visibility-select {
+		background: var(--bg-surface);
+		border: 1px solid var(--border);
+		color: var(--text);
+		padding: 0.35rem 0.5rem;
+		border-radius: 4px;
+		font-size: 0.8rem;
+		cursor: pointer;
+	}
+
+	.visibility-select:hover {
+		background: var(--bg-elevated);
 	}
 
 	.trim-bar {
