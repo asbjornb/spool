@@ -2,8 +2,8 @@
  * API client for unspool.dev backend
  */
 
-// API base URL - use environment variable or default to workers.dev
-const API_BASE = import.meta.env.VITE_API_URL || 'https://unspool-api.asbjoernbrandt.workers.dev';
+// API base URL - use environment variable or default to custom domain
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.unspool.dev';
 
 export interface SessionMetadata {
 	id: string;
