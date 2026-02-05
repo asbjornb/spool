@@ -21,8 +21,6 @@ use crate::commands::agent;
 pub enum LibraryAction {
     /// Open a session in the Editor.
     OpenEditor(PathBuf, AgentType),
-    /// Open a file by path (auto-detect agent type).
-    OpenFile(PathBuf),
     /// Quit the application.
     Quit,
     /// No action; continue rendering.
@@ -40,7 +38,6 @@ struct PreviewData {
 enum Mode {
     Normal,
     Search,
-    OpenFile,
 }
 
 /// Library view state (the session browser).
@@ -52,7 +49,6 @@ pub struct LibraryState {
     preview_scroll: usize,
     mode: Mode,
     search_input: String,
-    open_file_input: String,
     agent_filter: Option<String>,
     status_message: Option<(String, Instant)>,
 }
@@ -81,7 +77,6 @@ impl LibraryState {
             preview_scroll: 0,
             mode: Mode::Normal,
             search_input: String::new(),
-            open_file_input: String::new(),
             agent_filter,
             status_message: None,
         })
@@ -213,10 +208,6 @@ impl LibraryState {
                 KeyCode::Char('/') => {
                     self.mode = Mode::Search;
                 }
-                KeyCode::Char('o') => {
-                    self.mode = Mode::OpenFile;
-                    self.open_file_input.clear();
-                }
                 KeyCode::Enter => {
                     if let Some(session) = self.selected_session() {
                         let path = session.path.clone();
@@ -248,40 +239,6 @@ impl LibraryState {
                 KeyCode::Char(c) => {
                     self.search_input.push(c);
                     self.update_filter();
-                }
-                _ => {}
-            },
-            Mode::OpenFile => match key.code {
-                KeyCode::Esc => {
-                    self.mode = Mode::Normal;
-                    self.open_file_input.clear();
-                }
-                KeyCode::Enter => {
-                    let input = self.open_file_input.trim().to_string();
-                    self.mode = Mode::Normal;
-                    self.open_file_input.clear();
-                    if !input.is_empty() {
-                        let expanded = if let Some(rest) = input.strip_prefix("~/") {
-                            if let Some(home) = dirs::home_dir() {
-                                home.join(rest)
-                            } else {
-                                PathBuf::from(&input)
-                            }
-                        } else {
-                            PathBuf::from(&input)
-                        };
-                        if expanded.exists() {
-                            return LibraryAction::OpenFile(expanded);
-                        } else {
-                            self.set_status(format!("File not found: {}", input));
-                        }
-                    }
-                }
-                KeyCode::Backspace => {
-                    self.open_file_input.pop();
-                }
-                KeyCode::Char(c) => {
-                    self.open_file_input.push(c);
                 }
                 _ => {}
             },
@@ -616,17 +573,9 @@ impl LibraryState {
                 ),
                 Style::default().fg(Color::Yellow),
             )
-        } else if self.mode == Mode::OpenFile {
-            (
-                format!(
-                    "Open file: {}_ | Esc: cancel  Enter: open",
-                    self.open_file_input
-                ),
-                Style::default().fg(Color::Yellow),
-            )
         } else {
             (
-                "j/k: navigate  /: search  o: open file  Enter: open  q: quit".to_string(),
+                "j/k: navigate  /: search  Enter: open  q: quit".to_string(),
                 Style::default().fg(Color::DarkGray),
             )
         };

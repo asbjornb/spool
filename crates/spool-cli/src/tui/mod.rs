@@ -27,7 +27,7 @@ use crate::commands::agent::load_spool_or_log;
 
 /// Top-level view state.
 enum AppView {
-    Library(Box<LibraryState>),
+    Library(LibraryState),
     Editor(Box<EditorState>),
 }
 
@@ -51,7 +51,7 @@ pub fn run_tui(initial_path: Option<PathBuf>) -> Result<()> {
         }
         None => {
             let library = LibraryState::new(None)?;
-            AppView::Library(Box::new(library))
+            AppView::Library(library)
         }
     };
 
@@ -71,7 +71,7 @@ pub fn run_tui(initial_path: Option<PathBuf>) -> Result<()> {
     }));
 
     // Preserve library state across transitions
-    let mut saved_library: Option<Box<LibraryState>> = None;
+    let mut saved_library: Option<LibraryState> = None;
 
     let result = run_app_loop(&mut terminal, &mut view, &mut saved_library);
 
@@ -85,7 +85,7 @@ pub fn run_tui(initial_path: Option<PathBuf>) -> Result<()> {
 fn run_app_loop(
     terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
     view: &mut AppView,
-    saved_library: &mut Option<Box<LibraryState>>,
+    saved_library: &mut Option<LibraryState>,
 ) -> Result<()> {
     loop {
         // Tick and draw
@@ -129,26 +129,6 @@ fn run_app_loop(
                                 }
                             }
                         }
-                        LibraryAction::OpenFile(path) => match load_spool_or_log(&path) {
-                            Ok(spool_file) => {
-                                if spool_file.entries.is_empty() {
-                                    lib.set_status("File has no entries".to_string());
-                                } else {
-                                    let mut editor = EditorState::new(spool_file, path, 1.0);
-                                    editor.has_library = true;
-                                    editor.start_playing();
-
-                                    let old_view =
-                                        std::mem::replace(view, AppView::Editor(Box::new(editor)));
-                                    if let AppView::Library(lib_state) = old_view {
-                                        *saved_library = Some(lib_state);
-                                    }
-                                }
-                            }
-                            Err(e) => {
-                                lib.set_status(format!("Failed to open: {}", e));
-                            }
-                        },
                         LibraryAction::Quit => break,
                         LibraryAction::None => {}
                     },
