@@ -1,47 +1,72 @@
 <script lang="ts">
 	import type { SpoolFile } from '$lib/types';
 	import { parseSpool } from '$lib/parser';
-	import { uploadSession, type UploadResponse } from '$lib/api';
+	import { isClaudeCodeLog, convertClaudeCodeLog } from '$lib/adapters/claude-code';
 	import PlayerView from '$lib/components/PlayerView.svelte';
+	import EditorView from '$lib/components/EditorView.svelte';
 
 	let spool = $state<SpoolFile | null>(null);
-	let rawContent = $state<string | null>(null);
 	let error = $state<string | null>(null);
 	let dragOver = $state(false);
+	let fileName = $state<string>('session');
 
-	// Upload state
-	let uploading = $state(false);
-	let uploadResult = $state<UploadResponse | null>(null);
-	let copied = $state(false);
+	/** Whether we loaded a raw log (→ EditorView) or a .spool file (→ PlayerView) */
+	let isRawLog = $state(false);
 
 	async function loadFile(file: File) {
 		error = null;
-		uploadResult = null;
+		fileName = file.name;
 		try {
 			const text = await file.text();
-			rawContent = text;
-			spool = parseSpool(text);
+			parseAndLoad(text, file.name);
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Failed to parse file';
 			spool = null;
-			rawContent = null;
 		}
 	}
 
 	async function loadUrl(url: string) {
 		error = null;
-		uploadResult = null;
 		try {
 			const res = await fetch(url);
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 			const text = await res.text();
-			rawContent = text;
-			spool = parseSpool(text);
+			const name = url.split('/').pop() || 'session';
+			fileName = name;
+			parseAndLoad(text, name);
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Failed to load file';
 			spool = null;
-			rawContent = null;
 		}
+	}
+
+	function parseAndLoad(text: string, name: string) {
+		// Try parsing as .spool first
+		const firstLine = text.split('\n').find((l) => l.trim().length > 0) ?? '';
+
+		// Check if it's a raw Claude Code log
+		if (isClaudeCodeLog(firstLine)) {
+			try {
+				const firstParsed = JSON.parse(firstLine);
+				// If the first entry is type "session" with a version field, it's already .spool
+				if (firstParsed.type === 'session' && firstParsed.version) {
+					spool = parseSpool(text);
+					isRawLog = false;
+					return;
+				}
+			} catch {
+				// Not valid JSON, fall through
+			}
+
+			// It's a raw log — convert client-side
+			spool = convertClaudeCodeLog(text);
+			isRawLog = true;
+			return;
+		}
+
+		// Default: try as .spool
+		spool = parseSpool(text);
+		isRawLog = false;
 	}
 
 	function handleDrop(e: DragEvent) {
@@ -61,32 +86,10 @@
 		await loadUrl(`/${name}`);
 	}
 
-	async function handleUpload() {
-		if (!rawContent) return;
-
-		uploading = true;
-		error = null;
-		try {
-			uploadResult = await uploadSession(rawContent);
-		} catch (e) {
-			error = e instanceof Error ? e.message : 'Upload failed';
-		} finally {
-			uploading = false;
-		}
-	}
-
-	function copyUrl() {
-		if (!uploadResult) return;
-		navigator.clipboard.writeText(uploadResult.url);
-		copied = true;
-		setTimeout(() => (copied = false), 2000);
-	}
-
 	function goBack() {
 		spool = null;
-		rawContent = null;
-		uploadResult = null;
 		error = null;
+		isRawLog = false;
 	}
 </script>
 
@@ -98,36 +101,20 @@
 	<div class="viewer-container">
 		<nav class="viewer-nav">
 			<button class="nav-back" onclick={goBack}>&larr; Load another</button>
-			<div class="nav-actions">
-				{#if uploadResult}
-					<span class="upload-success">Published!</span>
-					<button class="share-btn" onclick={copyUrl}>
-						{copied ? '✓ Copied!' : '🔗 Copy link'}
-					</button>
-					<a href={uploadResult.url} class="view-btn" target="_blank">View →</a>
-				{:else}
-					<button class="publish-btn" onclick={handleUpload} disabled={uploading}>
-						{uploading ? 'Publishing...' : '📤 Publish'}
-					</button>
-				{/if}
-			</div>
+			{#if isRawLog}
+				<span class="nav-label">Editing: {fileName}</span>
+			{/if}
 		</nav>
-
-		{#if uploadResult}
-			<div class="upload-banner">
-				<span>Shared at: </span>
-				<a href={uploadResult.url}>{uploadResult.url}</a>
-				{#if uploadResult.expires_at}
-					<span class="expires">(expires {new Date(uploadResult.expires_at).toLocaleDateString()})</span>
-				{/if}
-			</div>
-		{/if}
 
 		{#if error}
 			<div class="error-banner">{error}</div>
 		{/if}
 
-		<PlayerView {spool} />
+		{#if isRawLog}
+			<EditorView {spool} sourceFileName={fileName} />
+		{:else}
+			<PlayerView {spool} />
+		{/if}
 	</div>
 {:else}
 	<div
@@ -148,10 +135,18 @@
 			<div class="load-options">
 				<label class="file-picker">
 					<input type="file" accept=".spool,.jsonl" onchange={handleFileInput} />
-					<span>Open .spool file</span>
+					<span>Open .spool or .jsonl file</span>
 				</label>
 
-				<div class="drop-hint">or drag and drop a .spool file here</div>
+				<div class="drop-hint">Drop a .spool or raw Claude Code .jsonl log here</div>
+
+				<div class="format-info">
+					<p>Supports:</p>
+					<ul>
+						<li><strong>.spool</strong> files &mdash; view and share</li>
+						<li><strong>.jsonl</strong> Claude Code logs &mdash; edit, redact, trim, then share</li>
+					</ul>
+				</div>
 
 				<div class="demos">
 					<p>Try a demo:</p>
@@ -167,7 +162,11 @@
 			<div class="about">
 				<p>
 					<strong>Spool</strong> is an open format for recording AI agent sessions.
-					<a href="https://github.com/asbjornb/spool" target="_blank">Learn more →</a>
+					<a href="https://github.com/asbjornb/spool" target="_blank">Learn more &rarr;</a>
+				</p>
+				<p class="about-detail">
+					All processing runs locally in your browser. Files are only uploaded when you
+					choose to publish.
 				</p>
 			</div>
 		</div>
@@ -203,65 +202,9 @@
 		color: var(--text);
 	}
 
-	.nav-actions {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-	}
-
-	.publish-btn,
-	.share-btn,
-	.view-btn {
-		background: var(--bg-elevated);
-		border: 1px solid var(--border);
-		color: var(--text);
-		padding: 0.4rem 0.8rem;
-		border-radius: 4px;
-		cursor: pointer;
-		font-size: 0.85rem;
-		text-decoration: none;
-	}
-
-	.publish-btn:hover,
-	.share-btn:hover,
-	.view-btn:hover {
-		background: var(--border);
-	}
-
-	.publish-btn:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
-
-	.publish-btn {
-		background: var(--accent);
-		border-color: var(--accent);
-		color: #000;
-	}
-
-	.publish-btn:hover:not(:disabled) {
-		opacity: 0.9;
-	}
-
-	.upload-success {
-		color: var(--green);
-		font-size: 0.85rem;
-	}
-
-	.upload-banner {
-		padding: 0.5rem 1rem;
-		background: var(--bg-elevated);
-		border-bottom: 1px solid var(--border);
-		font-size: 0.85rem;
-	}
-
-	.upload-banner a {
-		color: var(--accent);
-	}
-
-	.upload-banner .expires {
+	.nav-label {
 		color: var(--text-muted);
-		margin-left: 0.5rem;
+		font-size: 0.85rem;
 	}
 
 	.error-banner {
@@ -270,6 +213,31 @@
 		border-bottom: 1px solid var(--red);
 		color: var(--red);
 		font-size: 0.85rem;
+	}
+
+	.format-info {
+		text-align: left;
+		background: var(--bg-surface);
+		border: 1px solid var(--border);
+		border-radius: 6px;
+		padding: 0.75rem 1rem;
+		font-size: 0.85rem;
+		margin-top: 0.5rem;
+	}
+
+	.format-info p {
+		color: var(--text-muted);
+		margin-bottom: 0.25rem;
+	}
+
+	.format-info ul {
+		list-style: none;
+		padding: 0;
+	}
+
+	.format-info li {
+		color: var(--text);
+		padding: 0.15rem 0;
 	}
 
 	.about {
@@ -282,5 +250,11 @@
 
 	.about a {
 		color: var(--accent);
+	}
+
+	.about-detail {
+		margin-top: 0.5rem;
+		font-size: 0.8rem;
+		opacity: 0.7;
 	}
 </style>
