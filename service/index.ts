@@ -41,6 +41,10 @@ export default {
         return await handleUpload(request, env);
       }
       
+      if (path === '/api/sessions' && request.method === 'GET') {
+        return await handleListPublicSessions(url, env);
+      }
+
       if (path.match(/^\/api\/s\/[a-zA-Z0-9]+$/) && request.method === 'GET') {
         const id = path.split('/').pop()!;
         return await handleGetSession(id, env);
@@ -92,6 +96,13 @@ export default {
 // ============ Handlers ============
 
 async function handleUpload(request: Request, env: Env): Promise<Response> {
+  // Parse visibility from query string (default: unlisted)
+  const uploadUrl = new URL(request.url);
+  const visibilityParam = uploadUrl.searchParams.get('visibility') || 'unlisted';
+  if (!['public', 'unlisted'].includes(visibilityParam)) {
+    return json({ error: 'Invalid visibility (must be "public" or "unlisted")' }, 400);
+  }
+
   const contentType = request.headers.get('content-type') || '';
   
   // Accept both raw gzip and application/json with base64
@@ -169,8 +180,8 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
 
   // Insert metadata
   await env.DB.prepare(`
-    INSERT INTO sessions (id, title, agent, entry_count, duration_ms, user_id, storage_key, size_bytes, expires_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO sessions (id, title, agent, entry_count, duration_ms, user_id, visibility, storage_key, size_bytes, expires_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     id,
     validation.metadata!.title,
@@ -178,6 +189,7 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
     validation.metadata!.entryCount,
     validation.metadata!.durationMs,
     userId,
+    visibilityParam,
     storageKey,
     storedData.byteLength,
     expiresAt
@@ -188,6 +200,52 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
     url: `https://unspool.dev/s/${id}`,
     expires_at: expiresAt,
   }, 201);
+}
+
+async function handleListPublicSessions(url: URL, env: Env): Promise<Response> {
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '20'), 50);
+  const offset = Math.max(parseInt(url.searchParams.get('offset') || '0'), 0);
+
+  const result = await env.DB.prepare(`
+    SELECT
+      s.id, s.title, s.agent, s.entry_count, s.duration_ms,
+      s.size_bytes, s.created_at, s.expires_at,
+      u.username, u.avatar_url
+    FROM sessions s
+    LEFT JOIN users u ON s.user_id = u.id
+    WHERE s.visibility = 'public'
+      AND (s.expires_at IS NULL OR s.expires_at > datetime('now'))
+    ORDER BY s.created_at DESC
+    LIMIT ? OFFSET ?
+  `).bind(limit, offset).all();
+
+  const countResult = await env.DB.prepare(`
+    SELECT COUNT(*) as total FROM sessions
+    WHERE visibility = 'public'
+      AND (expires_at IS NULL OR expires_at > datetime('now'))
+  `).first();
+
+  const sessions = (result.results as any[]).map(r => ({
+    id: r.id,
+    title: r.title,
+    agent: r.agent,
+    entry_count: r.entry_count,
+    duration_ms: r.duration_ms,
+    size_bytes: r.size_bytes,
+    created_at: r.created_at,
+    expires_at: r.expires_at,
+    user: r.username ? {
+      username: r.username,
+      avatar_url: r.avatar_url,
+    } : null,
+  }));
+
+  return json({
+    sessions,
+    total: (countResult as any)?.total ?? 0,
+    limit,
+    offset,
+  });
 }
 
 async function handleGetSession(id: string, env: Env): Promise<Response> {

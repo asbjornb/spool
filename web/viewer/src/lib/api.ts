@@ -27,6 +27,30 @@ export interface UploadResponse {
 	expires_at: string | null;
 }
 
+export type Visibility = 'public' | 'unlisted';
+
+export interface SessionListItem {
+	id: string;
+	title: string | null;
+	agent: string | null;
+	entry_count: number;
+	duration_ms: number;
+	size_bytes: number;
+	created_at: string;
+	expires_at: string | null;
+	user: {
+		username: string;
+		avatar_url: string | null;
+	} | null;
+}
+
+export interface SessionListResponse {
+	sessions: SessionListItem[];
+	total: number;
+	limit: number;
+	offset: number;
+}
+
 export class ApiError extends Error {
 	constructor(
 		public status: number,
@@ -80,7 +104,7 @@ export async function getSessionContent(id: string): Promise<string> {
  * Upload a .spool file
  * Returns the session ID and shareable URL
  */
-export async function uploadSession(content: string): Promise<UploadResponse> {
+export async function uploadSession(content: string, visibility: Visibility = 'unlisted'): Promise<UploadResponse> {
 	// Compress the content
 	const encoder = new TextEncoder();
 	const data = encoder.encode(content);
@@ -99,7 +123,7 @@ export async function uploadSession(content: string): Promise<UploadResponse> {
 		contentType = 'application/jsonl';
 	}
 
-	const res = await fetch(`${API_BASE}/api/upload`, {
+	const res = await fetch(`${API_BASE}/api/upload?visibility=${visibility}`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': contentType
@@ -112,5 +136,17 @@ export async function uploadSession(content: string): Promise<UploadResponse> {
 		throw new ApiError(res.status, responseBody.error || `HTTP ${res.status}`);
 	}
 
+	return res.json();
+}
+
+/**
+ * List public sessions
+ */
+export async function listPublicSessions(limit = 20, offset = 0): Promise<SessionListResponse> {
+	const res = await fetch(`${API_BASE}/api/sessions?limit=${limit}&offset=${offset}`);
+	if (!res.ok) {
+		const body = await res.json().catch(() => ({}));
+		throw new ApiError(res.status, body.error || `HTTP ${res.status}`);
+	}
 	return res.json();
 }

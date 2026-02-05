@@ -27,6 +27,7 @@
 	<nav class="viewer-nav">
 		<a href="/" class="nav-back">&larr; unspool.dev</a>
 		<div class="nav-actions">
+			<a href="/explore" class="nav-link">Explore</a>
 			<button class="share-btn" onclick={copyUrl} title="Copy link">
 				{copied ? '✓ Copied!' : '🔗 Share'}
 			</button>
@@ -86,6 +87,16 @@
 		border-radius: 4px;
 		cursor: pointer;
 		font-size: 0.85rem;
+	}
+
+	.nav-link {
+		color: var(--text-muted);
+		text-decoration: none;
+		font-size: 0.85rem;
+	}
+
+	.nav-link:hover {
+		color: var(--text);
 	}
 
 	.share-btn:hover {
