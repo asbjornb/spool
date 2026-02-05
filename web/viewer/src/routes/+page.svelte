@@ -2,6 +2,7 @@
 	import type { SpoolFile } from '$lib/types';
 	import { parseSpool } from '$lib/parser';
 	import { isClaudeCodeLog, convertClaudeCodeLog } from '$lib/adapters/claude-code';
+	import { isCodexLog, convertCodexLog } from '$lib/adapters/codex';
 	import PlayerView from '$lib/components/PlayerView.svelte';
 	import EditorView from '$lib/components/EditorView.svelte';
 
@@ -44,22 +45,28 @@
 		// Try parsing as .spool first
 		const firstLine = text.split('\n').find((l) => l.trim().length > 0) ?? '';
 
+		// Check if it's already a .spool file (first entry is type "session" with version)
+		try {
+			const firstParsed = JSON.parse(firstLine);
+			if (firstParsed.type === 'session' && firstParsed.version) {
+				spool = parseSpool(text);
+				isRawLog = false;
+				return;
+			}
+		} catch {
+			// Not valid JSON, fall through
+		}
+
 		// Check if it's a raw Claude Code log
 		if (isClaudeCodeLog(firstLine)) {
-			try {
-				const firstParsed = JSON.parse(firstLine);
-				// If the first entry is type "session" with a version field, it's already .spool
-				if (firstParsed.type === 'session' && firstParsed.version) {
-					spool = parseSpool(text);
-					isRawLog = false;
-					return;
-				}
-			} catch {
-				// Not valid JSON, fall through
-			}
-
-			// It's a raw log — convert client-side
 			spool = convertClaudeCodeLog(text);
+			isRawLog = true;
+			return;
+		}
+
+		// Check if it's a raw Codex CLI log
+		if (isCodexLog(firstLine)) {
+			spool = convertCodexLog(text);
 			isRawLog = true;
 			return;
 		}
@@ -138,13 +145,14 @@
 					<span>Open .spool or .jsonl file</span>
 				</label>
 
-				<div class="drop-hint">Drop a .spool or raw Claude Code .jsonl log here</div>
+				<div class="drop-hint">Drop a .spool or raw agent .jsonl log here</div>
 
 				<div class="format-info">
 					<p>Supports:</p>
 					<ul>
 						<li><strong>.spool</strong> files &mdash; view and share</li>
 						<li><strong>.jsonl</strong> Claude Code logs &mdash; edit, redact, trim, then share</li>
+						<li><strong>.jsonl</strong> Codex CLI logs &mdash; edit, redact, trim, then share</li>
 					</ul>
 				</div>
 
