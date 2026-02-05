@@ -142,24 +142,14 @@
 			<div class="load-options">
 				<label class="file-picker">
 					<input type="file" accept=".spool,.jsonl" onchange={handleFileInput} />
-					<span>Open .spool or .jsonl file</span>
+					<span>Open file</span>
 				</label>
 
-				<div class="drop-hint">Drop a .spool or raw agent .jsonl log here</div>
-
-				<div class="format-info">
-					<p>Supports:</p>
-					<ul>
-						<li><strong>.spool</strong> files &mdash; view and share</li>
-						<li><strong>.jsonl</strong> Claude Code logs &mdash; edit, redact, trim, then share</li>
-						<li><strong>.jsonl</strong> Codex CLI logs &mdash; edit, redact, trim, then share</li>
-					</ul>
-				</div>
+				<div class="drop-hint">or drop a .spool or .jsonl file here</div>
 
 				<div class="demos">
-					<p>Try a demo:</p>
-					<button onclick={() => loadDemo('demo.spool')}>Simple Session</button>
-					<button onclick={() => loadDemo('debugging-demo.spool')}>Debugging Session</button>
+					<button onclick={() => loadDemo('demo.spool')}>Try a demo</button>
+					<button onclick={() => loadDemo('debugging-demo.spool')}>Debugging demo</button>
 				</div>
 			</div>
 
@@ -170,11 +160,8 @@
 			<div class="about">
 				<p>
 					<strong>Spool</strong> is an open format for recording AI agent sessions.
+					Supports Claude Code and Codex logs. All processing runs locally.
 					<a href="https://github.com/asbjornb/spool" target="_blank">Learn more &rarr;</a>
-				</p>
-				<p class="about-detail">
-					All processing runs locally in your browser. Files are only uploaded when you
-					choose to publish.
 				</p>
 			</div>
 		</div>
@@ -223,31 +210,6 @@
 		font-size: 0.85rem;
 	}
 
-	.format-info {
-		text-align: left;
-		background: var(--bg-surface);
-		border: 1px solid var(--border);
-		border-radius: 6px;
-		padding: 0.75rem 1rem;
-		font-size: 0.85rem;
-		margin-top: 0.5rem;
-	}
-
-	.format-info p {
-		color: var(--text-muted);
-		margin-bottom: 0.25rem;
-	}
-
-	.format-info ul {
-		list-style: none;
-		padding: 0;
-	}
-
-	.format-info li {
-		color: var(--text);
-		padding: 0.15rem 0;
-	}
-
 	.about {
 		margin-top: 3rem;
 		padding-top: 2rem;
@@ -260,9 +222,4 @@
 		color: var(--accent);
 	}
 
-	.about-detail {
-		margin-top: 0.5rem;
-		font-size: 0.8rem;
-		opacity: 0.7;
-	}
 </style>
