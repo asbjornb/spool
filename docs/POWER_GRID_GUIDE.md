@@ -2,10 +2,11 @@
 ### A visual storybook for consumers wondering where their money goes
 
 > **Format note:** This document is a script and content guide for an interactive
-> visual story. Each "page" is a self-contained chapter designed as a full-screen
-> panel with animations or interactive elements. The narrative builds from physical
-> reality up to markets, trading, and the green transition -- so the reader can
-> form their own opinion on whether energy trading benefits them.
+> visual story in five pages. Each page is a self-contained chapter designed as a
+> full-screen panel with animations or interactive elements. The narrative builds
+> from physical reality up to markets, trading, and the green transition -- giving
+> the reader enough understanding to form their own opinion on whether energy
+> trading benefits them.
 
 ---
 
@@ -299,106 +300,24 @@ rebalancing when forecasts shift. But it's also where speculation can hurt:
 if traders amplify price signals beyond what the physical situation warrants,
 it adds cost without adding electrons.
 
----
+### The question this leaves you with
 
-## Page 6: So... Does Trading Help You?
+By now you've seen the full picture: a grid that must balance every second
+(Page 1), a pricing mechanism where the most expensive generator sets the price
+(Page 2), physical pressures that can cascade across a continent (Page 3), and
+traders who sit in the middle of all of it (Page 4).
 
-**Visual:** A simple balance scale. Benefits on one side, costs on the other.
-Items drop onto each side as the reader scrolls.
+The green transition makes all of this *more* volatile, not less -- more
+variable generation, steeper ramps, bigger forecast errors, more congestion.
+That means more opportunities for trading to be useful (moving power, smoothing
+risk) *and* more opportunities for it to extract value (exploiting information
+gaps, amplifying price signals).
 
-### The case FOR energy trading (consumer perspective)
-
-✅ **Moves power where it's needed.** Without traders, surplus wind in Denmark
-sits idle while Germany burns gas. Trading makes interconnectors earn their
-investment.
-
-✅ **Price smoothing through hedging.** Your utility can lock in winter prices
-in summer. Without futures markets, your bill would be far more volatile.
-
-✅ **Investment signals.** Trading revenue (and the forward price curve) tells
-investors where to build wind farms, solar plants, batteries, and grid lines.
-This is the financial backbone of the energy transition.
-
-✅ **Liquidity and efficiency.** More participants in the market means tighter
-spreads and more accurate prices, which in theory means fewer resources wasted.
-
-### The case AGAINST (or at least, for skepticism)
-
-⚠️ **Traders need volatility.** A perfectly smooth, predictable grid would put
-traders out of business. They have structural incentives to maintain (not
-create, but not eliminate) price differences.
-
-⚠️ **Information asymmetry.** Trading firms spend millions on proprietary weather
-models and real-time satellite feeds. When they trade ahead of a wind forecast
-shift, their profit comes from someone else's stale price -- ultimately, from
-the pool of money that could have reduced consumer costs.
-
-⚠️ **Financial complexity adds cost.** The layers of derivatives, options, and
-structured products create overhead. Regulators, compliance, exchanges, clearing
-houses -- all take their cut.
-
-⚠️ **Speculation can amplify crises.** During the 2022 energy crisis, some trading
-activity arguably worsened price spikes. Margin calls forced physical players to
-liquidate positions, creating cascading sell-offs that moved prices beyond
-what fundamentals justified.
-
-### The nuanced answer
-
-Energy trading is like the financial system in general: the core function
-(allocating resources, managing risk, enabling investment) is genuinely
-valuable. But the system has grown well beyond the minimum needed for that
-core function, and the excess primarily benefits the financial participants,
-not consumers.
-
-**The honest take for consumers:**
-- Trading probably **lowers** your average electricity cost by a moderate amount
-  (better resource allocation, fewer blackouts, cheaper renewables financing)
-- Trading probably **increases** your cost during crises (speculation,
-  amplification effects)
-- The net effect is likely a small benefit in normal times, but the distribution
-  is uneven -- trading firms capture a disproportionate share of the value they
-  create
-- The real lever for consumer prices is **generation mix and grid investment**,
-  not market structure. Whether trading adds €2 or subtracts €2 per MWh matters
-  far less than whether there are enough wind farms and grid connections
-
----
-
-## Page 7: Reading Your Bill
-
-**Visual:** An actual electricity bill, annotated. Each line item traces back
-to a concept from earlier pages.
-
-### Where your money actually goes
-
-A typical European consumer electricity bill breaks down roughly as:
-
-```
-Generation cost (wholesale)     30-40%  ← Set by the merit order (Page 2)
-Grid fees (transmission + dist) 20-30%  ← Pays for the physical wires
-Taxes and levies                20-35%  ← Renewables surcharges, VAT, etc.
-Retail margin                    3-8%   ← Your utility's profit
-```
-
-The "trading" cost is embedded in the generation cost -- it's not a separate
-line item. When traders make the wholesale market more efficient, that 30-40%
-is slightly lower. When speculation adds to wholesale prices, it's slightly
-higher. But it's invisible on your bill.
-
-**The biggest determinants of your bill:**
-1. 🏗️ Your country's generation mix (lots of hydro = cheap, lots of gas = expensive)
-2. 🔌 Grid investment levels (congested grids = price zones diverge)
-3. 📋 Government policy (carbon prices, renewable subsidies, price caps)
-4. 🌤️ Weather (both short-term and seasonal)
-
-Trading is a second-order effect. It matters, but it's not the main driver.
-
-> **Interactive idea:** Let the reader build their own country's generation mix
-> using sliders (% nuclear, % wind, % solar, % gas, % hydro). Show the resulting
-> average wholesale price, typical bill, and CO₂ intensity. Then add a "trading
-> efficiency" slider from 0-100% that slightly adjusts the wholesale price up or
-> down. The point becomes viscerally clear: the generation mix slider moves the
-> price by €50/MWh, while the trading slider moves it by €3-5/MWh.
+Whether the net effect benefits you as a consumer depends on how well markets
+are regulated, how fast storage scales, and how much grid infrastructure gets
+built. The generation mix and the wires matter far more than the financial
+layer on top. But the financial layer isn't nothing -- and now you know enough
+to judge for yourself.
 
 ---
 
@@ -427,4 +346,4 @@ is genuinely complex and that reasonable people disagree.
 ### Audience
 Consumers and interested non-specialists. No assumed knowledge of electricity
 markets. The physical grid explanations (Pages 1, 3) build intuition before
-introducing financial complexity (Pages 4-6).
+introducing financial complexity (Pages 4-5).
