@@ -94,19 +94,19 @@
 
 	<div class="controls">
 		<button class="control-btn" onclick={() => player.toggle()} title="Play/Pause (Space)">
-			{player.state === 'playing' ? '\u23F8' : '\u25B6'}
+			{player.state === 'playing' ? '⏸' : '▶'}
 		</button>
 		<button class="control-btn" onclick={() => player.stepBackward()} title="Step Back (h)">
-			\u23EE
+			⏮
 		</button>
 		<button class="control-btn" onclick={() => player.stepForward()} title="Step Forward (l)">
-			\u23ED
+			⏭
 		</button>
 		<button class="control-btn" onclick={() => player.jumpToStart()} title="Jump to Start (g)">
-			\u23EA
+			⏪
 		</button>
 		<button class="control-btn" onclick={() => player.jumpToEnd()} title="Jump to End (G)">
-			\u23E9
+			⏩
 		</button>
 		<button class="control-btn speed-btn" onclick={() => player.cycleSpeed()} title="Speed (+)">
 			{player.speed}x

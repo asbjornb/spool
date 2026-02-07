@@ -326,20 +326,18 @@
 	<!-- Trim controls -->
 	{#if mode === 'trim'}
 		<div class="trim-bar">
-			<span class="trim-label">
-				Trim:
-				{#if trimStart != null}
-					{formatTimestamp(trimStart)}
-				{:else}
-					<button class="inline-btn" onclick={markTrimStart}>Set start [</button>
-				{/if}
-				&mdash;
-				{#if trimEnd != null}
-					{formatTimestamp(trimEnd)}
-				{:else}
-					<button class="inline-btn" onclick={markTrimEnd}>Set end ]</button>
-				{/if}
-			</span>
+			<span class="trim-label">Trim:</span>
+			{#if trimStart != null}
+				<span class="trim-value">{formatTimestamp(trimStart)}</span>
+			{:else}
+				<button class="inline-btn" onclick={markTrimStart} title="Press [ to set">Set start</button>
+			{/if}
+			<span class="trim-separator">→</span>
+			{#if trimEnd != null}
+				<span class="trim-value">{formatTimestamp(trimEnd)}</span>
+			{:else}
+				<button class="inline-btn" onclick={markTrimEnd} title="Press ] to set">Set end</button>
+			{/if}
 			{#if trimStart != null && trimEnd != null && trimStart < trimEnd}
 				<button class="toolbar-btn accent" onclick={applyTrim}>Apply trim</button>
 			{/if}
@@ -523,6 +521,15 @@
 	}
 
 	.trim-label {
+		color: var(--text-muted);
+	}
+
+	.trim-value {
+		color: var(--text);
+		font-family: monospace;
+	}
+
+	.trim-separator {
 		color: var(--text-muted);
 	}
 
