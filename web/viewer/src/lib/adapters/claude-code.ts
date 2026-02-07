@@ -90,7 +90,9 @@ export function isClaudeCodeLog(firstLine: string): boolean {
 	try {
 		const parsed = JSON.parse(firstLine);
 		const type = parsed?.type;
-		return ['user', 'assistant', 'progress', 'summary', 'system'].includes(type);
+		return ['user', 'assistant', 'progress', 'summary', 'system', 'file-history-snapshot'].includes(
+			type
+		);
 	} catch {
 		return false;
 	}

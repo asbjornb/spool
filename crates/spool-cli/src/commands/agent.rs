@@ -49,7 +49,9 @@ pub fn detect_agent_from_log(path: &Path) -> Result<AgentType> {
         let kind = value.get("type").and_then(|v| v.as_str()).unwrap_or("");
         return Ok(match kind {
             "session_meta" => AgentType::Codex,
-            "user" | "assistant" | "progress" | "summary" | "system" => AgentType::ClaudeCode,
+            "user" | "assistant" | "progress" | "summary" | "system" | "file-history-snapshot" => {
+                AgentType::ClaudeCode
+            }
             _ => AgentType::Unknown,
         });
     }
